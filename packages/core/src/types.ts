@@ -28,6 +28,7 @@ export interface TextItem extends BaseItem {
   /** 字号，mm */
   size: number;
   fill?: RgbColor;
+  stroke?: RgbColor;
   weight?: number;
   italic?: boolean;
   /** 横向缩放百分比，100 表示正常 */

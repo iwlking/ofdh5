@@ -98,4 +98,37 @@ write('broken.ofd', {
   'Doc_0/Pages/Page_0/Content.xml': textPage('x'),
 });
 
+// 5. 图像资源 + 路径对象
+const PNG_1X1 = Uint8Array.from(
+  Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  ),
+);
+
+write('image.ofd', {
+  'OFD.xml': ofdXml(),
+  'Doc_0/Document.xml': documentXml(1),
+  'Doc_0/Pages/Page_0/Res/image_0.png': PNG_1X1,
+  'Doc_0/Pages/Page_0/Content.xml': `<?xml version="1.0" encoding="UTF-8"?>
+<ofd:Page xmlns:ofd="http://www.ofdspec.org/2016">
+  <ofd:Area><ofd:PhysicalBox>0 0 210 297</ofd:PhysicalBox></ofd:Area>
+  <ofd:Content><ofd:Layer ID="1">
+    <ofd:ImageObject ID="4" Boundary="10 10 50 50" ResourceID="5" CTM="1 0 0 1 0 0"/>
+    <ofd:PathObject ID="3" Boundary="20 80 100 40" LineWidth="1" Stroke="true" Fill="true" FillRule="evenodd">
+      <ofd:AbbreviatedData>M 0 0 L 100 0 L 100 40 L 0 40 C</ofd:AbbreviatedData>
+      <ofd:StrokeColor Value="0 0 255"/>
+      <ofd:FillColor Value="200 200 200"/>
+    </ofd:PathObject>
+  </ofd:Layer></ofd:Content>
+  <ofd:Resources>
+    <ofd:MultiMedias>
+      <ofd:MultiMedia ID="5" Type="Image">
+        <ofd:MediaFile>Res/image_0.png</ofd:MediaFile>
+      </ofd:MultiMedia>
+    </ofd:MultiMedias>
+  </ofd:Resources>
+</ofd:Page>`,
+});
+
 console.log('fixtures written to', outDir);

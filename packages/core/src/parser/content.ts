@@ -1,6 +1,7 @@
 import type { Glyph, Page, PageItem, PageResources, TextItem } from '../types';
 import { parseColor } from './color';
 import { abbreviatedToSvgPath } from './path-data';
+import { parseResources } from './resources';
 import { allByLocalName, attr, directChild, firstByLocalName, num, nums, parseXml } from './xml';
 
 export interface PageSize {
@@ -73,14 +74,52 @@ function parseText(el: Element, pageWidth: number): TextItem {
     italic: attr(el, 'Italic') === 'true',
     glyphs,
     text,
-  } as TextItem & { stroke?: unknown };
+  };
+}
+
+function parsePath(el: Element): PageItem {
+  const data = firstByLocalName(el, 'AbbreviatedData')?.textContent ?? '';
+  const strokeEl = directChild(el, 'StrokeColor');
+  const fillEl = directChild(el, 'FillColor');
+  const lineWidth = attr(el, 'LineWidth');
+  return {
+    kind: 'path',
+    boundary: parseBoundary(attr(el, 'Boundary')),
+    ctm: parseCtm(attr(el, 'CTM')),
+    d: abbreviatedToSvgPath(data),
+    lineWidth: lineWidth == null ? 1 : num(lineWidth, 1),
+    stroke:
+      attr(el, 'Stroke') === 'true'
+        ? (parseColor(attr(strokeEl, 'Value'), attr(strokeEl, 'Alpha')) ?? { r: 0, g: 0, b: 0, a: 1 })
+        : undefined,
+    fill:
+      attr(el, 'Fill') === 'true'
+        ? (parseColor(attr(fillEl, 'Value'), attr(fillEl, 'Alpha')) ?? { r: 0, g: 0, b: 0, a: 1 })
+        : undefined,
+    rule: attr(el, 'FillRule') === 'evenodd' ? 'evenodd' : 'nonzero',
+  };
+}
+
+function parseImage(el: Element, resources: PageResources): PageItem {
+  const resId = attr(el, 'ResourceID') ?? '';
+  const resource = resources.images.get(resId);
+  return {
+    kind: 'image',
+    boundary: parseBoundary(attr(el, 'Boundary')),
+    ctm: parseCtm(attr(el, 'CTM')),
+    resId,
+    mime: resource?.mime ?? '',
+    width: 0,
+    height: 0,
+  };
 }
 
 export function parsePage(
   source: string,
   index: number,
-  _resources: PageResources,
+  resources: PageResources,
   fallback?: PageSize,
+  contentLoc = '',
 ): Page {
   const doc = parseXml(source, `Content.xml(第 ${index + 1} 页)`);
   const root = doc.documentElement;
@@ -89,11 +128,18 @@ export function parsePage(
   const width = box[2] ?? fallback?.width ?? 210;
   const height = box[3] ?? fallback?.height ?? 297;
 
+  const resourcesEl = firstByLocalName(root, 'Resources');
+  if (resourcesEl) {
+    parseResources(new XMLSerializer().serializeToString(resourcesEl), contentLoc, resources);
+  }
+
   const items: PageItem[] = [];
   for (const layer of allByLocalName(root, 'Layer')) {
     for (let i = 0; i < layer.children.length; i++) {
       const child = layer.children[i];
       if (child.localName === 'TextObject') items.push(parseText(child, width));
+      else if (child.localName === 'PathObject') items.push(parsePath(child));
+      else if (child.localName === 'ImageObject') items.push(parseImage(child, resources));
     }
   }
 
