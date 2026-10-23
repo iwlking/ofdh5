@@ -1,17 +1,16 @@
 <template>
   <div class="app">
     <div class="bar">
-      第 {{ page }} 页 / {{ total }}
       <button @click="$refs.viewer.prevPage()">上一页</button>
       <button @click="$refs.viewer.nextPage()">下一页</button>
       <button @click="$refs.viewer.zoomIn()">放大</button>
       <button @click="$refs.viewer.zoomOut()">缩小</button>
+      <span class="hint">{{ page }} / {{ total }}</span>
     </div>
     <div class="stage">
       <ofd-viewer
         ref="viewer"
         :url="url"
-        :page-num="false"
         @ready="onReady"
         @page-change="onPageChange"
         @error="onError"
@@ -46,5 +45,6 @@ export default {
 <style>
 .app { display: flex; flex-direction: column; height: 100%; }
 .bar { flex: none; display: flex; gap: 8px; align-items: center; padding: 8px; background: #fff; border-bottom: 1px solid #eee; font: 14px/1.4 sans-serif; }
+.hint { margin-left: auto; color: #999; }
 .stage { flex: 1; min-height: 0; }
 </style>

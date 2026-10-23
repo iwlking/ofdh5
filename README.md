@@ -190,6 +190,21 @@ this.$refs.viewer.destroy();
 | `page-change` | `(pageNum)` | 内核 `scroll` 中 `currentNum` 变化时 |
 | `back-top` | — | 内核 `backTop` |
 
+## 样式
+
+视觉与 pdfh5 3.0 保持一致，样式由内核自动注入（无需单独引 CSS 文件）：
+
+| 元素 | 表现 |
+|---|---|
+| 页码胶囊 | 左上角 20/15，高 26px、圆角 8px，背景 `rgba(0,0,0,.5)`，白色 16px 文字，格式 `当前/总数` |
+| 加载进度条 | 顶部 4px，白底 + `#7bcf34` 绿色填充，加载完成后淡出隐藏 |
+| 回到顶部 | 右下角 50×50 圆形按钮，`rgba(0,0,0,.4)` 底 + pdfh5 同款白色向上箭头，**滚动超过一屏才出现** |
+| 页面容器 | 白底、`darkgrey` 三级阴影、页间 8px 间距、四周 10px/8px 内边距 |
+
+对应配置项：`pageNum` / `loadingBar` / `backTop`，任一设为 `false` 即不渲染该元素。
+
+效果截图见 `docs/screenshots/top.png`（首屏）与 `docs/screenshots/scrolled.png`（滚动后出现回到顶部按钮）。
+
 ## API
 
 ### new Ofdh5(container, options?)

@@ -11,22 +11,30 @@ export interface Chrome {
   setPage(current: number, total: number): void;
   setProgress(ratio: number): void;
   hideLoading(): void;
+  setBackTopVisible(visible: boolean): void;
   onBackTop(handler: () => void): void;
   destroy(): void;
 }
 
+/** 视觉样式移植自 pdfh5 3.0（MIT）：页码胶囊、绿色进度条、回到顶部圆钮、页面阴影 */
 export const STYLE_TEXT = `
-.ofdh5{position:relative;width:100%;height:100%;overflow:hidden;background:#f5f5f5;}
-.ofdh5-scroller{position:relative;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+.ofdh5{position:relative;width:100%;height:100%;overflow:hidden;background:#fff;}
+.ofdh5-scroller{position:relative;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;transition:all .3s;}
 .ofdh5-sizer{position:relative;width:100%;height:100%;}
-.ofdh5-viewer{padding:10px 8px 40px 8px;box-sizing:border-box;}
-.ofdh5-page{position:relative;margin:0 auto 8px auto;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);overflow:hidden;}
-.ofdh5-page canvas{display:block;width:100%;height:100%;}
-.ofdh5-page-error{display:flex;align-items:center;justify-content:center;height:100%;color:#999;font-size:14px;}
-.ofdh5-loading{position:absolute;top:0;left:0;width:100%;height:3px;background:rgba(0,0,0,.06);z-index:10;}
-.ofdh5-progress{height:100%;width:0;background:#7bcf34;transition:width .2s;}
-.ofdh5-page-num{position:absolute;top:12px;left:12px;padding:2px 8px;border-radius:6px;background:rgba(0,0,0,.5);color:#fff;font-size:13px;line-height:20px;z-index:9;}
-.ofdh5-back-top{position:absolute;right:15px;bottom:40px;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.35);color:#fff;font-size:16px;line-height:40px;text-align:center;z-index:9;display:none;cursor:pointer;}
+.ofdh5-viewer{position:relative;top:0;left:0;padding:10px 8px;}
+.ofdh5-page{margin:0 auto 8px auto;position:relative;overflow:visible;box-shadow:darkgrey 0px 1px 3px 0px;background-color:#fff;box-sizing:border-box;}
+.ofdh5-page canvas{width:100%;height:100%;position:relative;z-index:100;user-select:none;pointer-events:none;display:block;}
+.ofdh5-page-error{display:flex;align-items:center;justify-content:center;height:100%;color:#999;font-size:16px;background:#fff;}
+.ofdh5-loading{position:absolute;width:100%;z-index:1000;background:#fff;height:4px;top:0;left:0;transition:all .3s;}
+.ofdh5-progress{background:#fff;position:absolute;top:0;left:0;width:0%;height:100%;overflow:hidden;transition:width 200ms;}
+.ofdh5-glimmer{position:absolute;top:0;left:0;height:100%;width:calc(100% + 150px);background:#7bcf34;}
+.ofdh5-page-num{padding:0 7px;height:26px;position:absolute;top:20px;left:15px;z-index:997;border-radius:8px;transition:all .3s;}
+.ofdh5-page-num-bg,.ofdh5-page-num-text{width:100%;height:100%;line-height:26px;text-align:center;position:absolute;top:0;left:0;color:#fff;border-radius:8px;font-size:16px;}
+.ofdh5-page-num-bg{background:rgba(0,0,0,.5);}
+.ofdh5-page-num-text{position:relative;}
+.ofdh5-page-num span{color:#fff;font-size:16px;}
+.ofdh5-back-top{width:50px;height:50px;line-height:50px;text-align:center;position:absolute;bottom:90px;right:15px;font-size:18px;z-index:999;border-radius:50%;background:rgba(0,0,0,.4) url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAAAsSAAALEgHS3X78AAAA+klEQVRYw+2WUQ2DMBCG2TIBSJiESkACEpCAg83BcLBJmIQ5gClgDpiDby9tciGkoaUtZOESXuhdv7+X/pdm2dYC6IgX7Zh3THy+w9oN/rMASqBcE26iSA1XwCAEDIBKBc8F/KE/gB7IU8BbDXyJf2Z2tFFFAE8N6iRIi/jotXssuGn1FzhPrCu9BtCEhlcCrix5hbiYVSh46bKpELvcniO71Q51zWJ7ju3mUe9vzym7eR7Az57CbohTXBzAt9GknG9PoLY8KK4z6htLfeXTTXMZAfoZuWYWKC+YZWMAQuWZSP0k2wXsAnYB2xNwci1wGTKhO/COlLtu/ABVfTFsxwwYRgAAAABJRU5ErkJggg==) no-repeat center;background-size:50% 50%;transition:all .3s;display:none;cursor:pointer;}
+.ofdh5-back-top:active{background-color:rgba(0,0,0,.6);}
 .ofdh5-back-top.is-visible{display:block;}
 `;
 
@@ -61,6 +69,9 @@ export function createChrome(container: HTMLElement, options: ChromeOptions): Ch
     loading.className = 'ofdh5-loading';
     progress = document.createElement('div');
     progress.className = 'ofdh5-progress';
+    const glimmer = document.createElement('div');
+    glimmer.className = 'ofdh5-glimmer';
+    progress.appendChild(glimmer);
     loading.appendChild(progress);
     container.appendChild(loading);
   }
@@ -71,13 +82,21 @@ export function createChrome(container: HTMLElement, options: ChromeOptions): Ch
   if (options.pageNum) {
     pageNum = document.createElement('div');
     pageNum.className = 'ofdh5-page-num';
+
+    const bg = document.createElement('div');
+    bg.className = 'ofdh5-page-num-bg';
+
+    const text = document.createElement('div');
+    text.className = 'ofdh5-page-num-text';
     nowEl = document.createElement('span');
     nowEl.className = 'ofdh5-page-now';
     nowEl.textContent = '1';
     totalEl = document.createElement('span');
     totalEl.className = 'ofdh5-page-total';
     totalEl.textContent = '0';
-    pageNum.append(nowEl, document.createTextNode('/'), totalEl);
+    text.append(nowEl, document.createTextNode('/'), totalEl);
+
+    pageNum.append(bg, text);
     container.appendChild(pageNum);
   }
 
@@ -85,7 +104,6 @@ export function createChrome(container: HTMLElement, options: ChromeOptions): Ch
   if (options.backTop) {
     backTop = document.createElement('div');
     backTop.className = 'ofdh5-back-top';
-    backTop.textContent = '↑';
     container.appendChild(backTop);
   }
 
@@ -106,6 +124,10 @@ export function createChrome(container: HTMLElement, options: ChromeOptions): Ch
     },
     hideLoading() {
       if (loading) loading.style.display = 'none';
+    },
+    setBackTopVisible(visible) {
+      if (!backTop) return;
+      backTop.classList.toggle('is-visible', visible);
     },
     onBackTop(handler) {
       backTopHandler = handler;

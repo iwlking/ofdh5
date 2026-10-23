@@ -205,9 +205,11 @@ export class Ofdh5 {
     this.buildPlaceholders();
     this.attachInteractions();
     this.chrome!.setPage(1, this.totalNum);
+    this.chrome!.setProgress(0.15);
     this.bus.trigger('ready');
 
     await this.renderVisible();
+    this.chrome!.setProgress(1);
     this.chrome!.hideLoading();
     this.bus.trigger('success', 'load success', performance.now() - this.startedAt);
 
@@ -271,6 +273,7 @@ export class Ofdh5 {
         this.chrome!.setPage(this.currentNum, this.totalNum);
       }
       this.bus.trigger('scroll', { scrollTop, currentNum: this.currentNum });
+      this.chrome!.setBackTopVisible(scrollTop > (this.chrome!.scroller.clientHeight || 600));
       void this.renderVisible();
     });
 
@@ -392,8 +395,11 @@ export class Ofdh5 {
     const targets = this.opts.lazyLoad
       ? [current - 1, current, current + 1]
       : Array.from({ length: this.totalNum }, (_, i) => i);
-    for (const index of targets) {
-      if (index >= 0 && index < this.totalNum) await this.renderPage(index);
+    const valid = targets.filter((index) => index >= 0 && index < this.totalNum);
+    for (let i = 0; i < valid.length; i++) {
+      await this.renderPage(valid[i]);
+      if (this.status !== 'ready') return;
+      this.chrome?.setProgress((i + 1) / Math.max(1, valid.length));
     }
   }
 

@@ -39,6 +39,27 @@ describe('createChrome', () => {
     chrome.destroy();
   });
 
+  it('回到顶部按钮默认隐藏，滚动后显示', () => {
+    const chrome = createChrome(container, { loadingBar: true, pageNum: true, backTop: true });
+    const button = container.querySelector('.ofdh5-back-top') as HTMLElement;
+    expect(button.classList.contains('is-visible')).toBe(false);
+    chrome.setBackTopVisible(true);
+    expect(button.classList.contains('is-visible')).toBe(true);
+    chrome.setBackTopVisible(false);
+    expect(button.classList.contains('is-visible')).toBe(false);
+    chrome.destroy();
+  });
+
+  it('页码有背景层与文字层，样式取自 pdfh5', () => {
+    const chrome = createChrome(container, { loadingBar: true, pageNum: true, backTop: true });
+    expect(container.querySelector('.ofdh5-page-num-bg')).not.toBeNull();
+    expect(container.querySelector('.ofdh5-page-num-text')).not.toBeNull();
+    expect(container.querySelector('.ofdh5-glimmer')).not.toBeNull();
+    expect(STYLE_TEXT).toContain('background:#7bcf34');
+    expect(STYLE_TEXT).toContain('box-shadow:darkgrey');
+    chrome.destroy();
+  });
+
   it('销毁后移除所有子节点', () => {
     const chrome = createChrome(container, { loadingBar: true, pageNum: true, backTop: true });
     chrome.destroy();

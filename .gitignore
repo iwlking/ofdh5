@@ -4,3 +4,4 @@ coverage/
 examples/vue2-demo/node_modules/
 test-results/
 playwright-report/
+examples/vue2-demo/screenshots/
