@@ -126,6 +126,10 @@ export class PinchZoom {
     this.options.onZoom?.(clamped, { x: contentX * ratio, y: contentY * ratio });
   }
 
+  setEnabled(enabled: boolean): void {
+    (this.options as { enabled: boolean }).enabled = enabled;
+  }
+
   setScale(nextScale: number): void {
     const rect = this.host.getBoundingClientRect();
     this.zoomAt(nextScale, rect.left + rect.width / 2, rect.top + rect.height / 2);
