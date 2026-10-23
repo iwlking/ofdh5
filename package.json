@@ -8,6 +8,7 @@
     "fixtures": "node scripts/make-fixtures.mjs"
   },
   "devDependencies": {
+    "fflate": "^0.8.3",
     "typescript": "^5.6.3"
   }
 }
