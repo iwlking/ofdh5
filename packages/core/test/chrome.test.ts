@@ -1,0 +1,48 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { createChrome, STYLE_TEXT } from '../src/ui/chrome';
+
+describe('createChrome', () => {
+  let container: HTMLElement;
+  beforeEach(() => {
+    document.head.innerHTML = '';
+    document.body.innerHTML = '';
+    container = document.createElement('div');
+    document.body.appendChild(container);
+  });
+
+  it('创建容器结构与样式', () => {
+    const chrome = createChrome(container, { loadingBar: true, pageNum: true, backTop: true });
+    expect(container.classList.contains('ofdh5')).toBe(true);
+    expect(container.querySelector('.ofdh5-viewer')).not.toBeNull();
+    expect(container.querySelector('.ofdh5-loading')).not.toBeNull();
+    expect(container.querySelector('.ofdh5-page-num')).not.toBeNull();
+    expect(container.querySelector('.ofdh5-back-top')).not.toBeNull();
+    expect(document.head.querySelector('style')!.textContent).toBe(STYLE_TEXT);
+    chrome.destroy();
+  });
+
+  it('按配置隐藏 UI', () => {
+    const chrome = createChrome(container, { loadingBar: false, pageNum: false, backTop: false });
+    expect(container.querySelector('.ofdh5-loading')).toBeNull();
+    expect(container.querySelector('.ofdh5-page-num')).toBeNull();
+    expect(container.querySelector('.ofdh5-back-top')).toBeNull();
+    chrome.destroy();
+  });
+
+  it('更新页码与进度', () => {
+    const chrome = createChrome(container, { loadingBar: true, pageNum: true, backTop: true });
+    chrome.setPage(3, 12);
+    expect(container.querySelector('.ofdh5-page-now')!.textContent).toBe('3');
+    expect(container.querySelector('.ofdh5-page-total')!.textContent).toBe('12');
+    chrome.setProgress(0.42);
+    expect((container.querySelector('.ofdh5-progress') as HTMLElement).style.width).toBe('42%');
+    chrome.destroy();
+  });
+
+  it('销毁后移除所有子节点', () => {
+    const chrome = createChrome(container, { loadingBar: true, pageNum: true, backTop: true });
+    chrome.destroy();
+    expect(container.innerHTML).toBe('');
+    expect(container.classList.contains('ofdh5')).toBe(false);
+  });
+});
