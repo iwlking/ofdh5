@@ -1,9 +1,9 @@
-# @ofdh5/vue2
+# ofdh5-vue2
 
-`@ofdh5/core` 的 Vue 2 组件封装。
+`ofdh5` 的 Vue 2 组件封装。
 
 ```bash
-npm i @ofdh5/core @ofdh5/vue2
+npm i ofdh5 ofdh5-vue2
 ```
 
 ```vue
@@ -12,7 +12,7 @@ npm i @ofdh5/core @ofdh5/vue2
 </template>
 
 <script>
-import OfdViewer from '@ofdh5/vue2/dist/ofdh5-vue2.esm.js';
+import OfdViewer from 'ofdh5-vue2/dist/ofdh5-vue2.esm.js';
 export default { components: { OfdViewer } };
 </script>
 ```

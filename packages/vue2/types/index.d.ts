@@ -1,4 +1,4 @@
-import type { Ofdh5Options, OfdStatus } from '@ofdh5/core';
+import type { Ofdh5Options, OfdStatus } from 'ofdh5';
 
 export interface OfdViewerProps {
   url?: string;
@@ -38,5 +38,5 @@ declare const plugin: {
 };
 
 export default plugin;
-export { Ofdh5 } from '@ofdh5/core';
-export type { Ofdh5Options, OfdStatus } from '@ofdh5/core';
+export { Ofdh5 } from 'ofdh5';
+export type { Ofdh5Options, OfdStatus } from 'ofdh5';

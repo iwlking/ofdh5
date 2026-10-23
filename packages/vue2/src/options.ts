@@ -1,4 +1,4 @@
-import type { Ofdh5Options } from '@ofdh5/core';
+import type { Ofdh5Options } from 'ofdh5';
 
 const OPTION_KEYS: Array<keyof Ofdh5Options> = [
   'url', 'pdfurl', 'data', 'goto', 'scale', 'scrollEnable', 'zoomEnable', 'resize',

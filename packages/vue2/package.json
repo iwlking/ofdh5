@@ -1,5 +1,5 @@
 {
-  "name": "@ofdh5/vue2",
+  "name": "ofdh5-vue2",
   "version": "0.1.0",
   "main": "./dist/ofdh5-vue2.umd.js",
   "module": "./dist/ofdh5-vue2.esm.js",
@@ -16,7 +16,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@ofdh5/core": "workspace:*"
+    "ofdh5": "workspace:*"
   },
   "peerDependencies": {
     "vue": "^2.6.0"
@@ -28,7 +28,7 @@
     "vite": "^5.4.10",
     "vitest": "^2.1.4"
   },
-  "description": "Vue 2 component wrapper for @ofdh5/core (OFD document preview)",
+  "description": "Vue 2 component wrapper for ofdh5 (OFD document preview)",
   "keywords": [
     "ofd",
     "vue2",

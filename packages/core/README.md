@@ -1,4 +1,4 @@
-# @ofdh5/core
+# ofdh5
 
 OFD（GB/T 33190-2016）移动端预览内核：纯前端解析 + Canvas 渲染，API 与 pdfh5 对齐。
 
@@ -10,13 +10,13 @@ OFD（GB/T 33190-2016）移动端预览内核：纯前端解析 + Canvas 渲染�
 ## 安装
 
 ```bash
-npm i @ofdh5/core
+npm i ofdh5
 ```
 
 ## 使用
 
 ```js
-import { Ofdh5 } from '@ofdh5/core';
+import { Ofdh5 } from 'ofdh5';
 
 const ofd = new Ofdh5(document.querySelector('#demo'), { url: './doc.ofd' });
 ofd.on('ready', function () {
@@ -25,7 +25,7 @@ ofd.on('ready', function () {
 ```
 
 ```html
-<script src="https://unpkg.com/@ofdh5/core/dist/ofdh5.min.js"></script>
+<script src="https://unpkg.com/ofdh5/dist/ofdh5.min.js"></script>
 <script>
   var ofd = new Ofdh5(document.querySelector('#demo'), { url: './doc.ofd' });
 </script>

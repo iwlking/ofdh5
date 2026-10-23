@@ -7,8 +7,8 @@
     "e2e": "playwright test"
   },
   "dependencies": {
-    "@ofdh5/core": "workspace:*",
-    "@ofdh5/vue2": "workspace:*",
+    "ofdh5": "workspace:*",
+    "ofdh5-vue2": "workspace:*",
     "vue": "^2.6.14"
   },
   "devDependencies": {

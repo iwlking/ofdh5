@@ -332,6 +332,6 @@ const ofd = new Ofdh5(document.querySelector('#demo'), { url: './doc.ofd' });
 
 ## 10. 发布与命名
 
-- 包名：`@ofdh5/core`、`@ofdh5/vue2`。若无需 scope，改为 `ofdh5`、`ofdh5-vue2`，与 pdfh5 的命名习惯保持一致。
+- 包名：`ofdh5`、`ofdh5-vue2`（无 scope，与 pdfh5 的命名习惯一致）。首发目标为阿里云云效制品仓库。
 - 发布：先本地 `file:` 引用接入 vue2 项目验证，稳定后再发 npm（公开或私有 registry 均可）。
 - UMD 产物文件名 `ofdh5.umd.min.js`，配套 `ofdh5.css`，支持 `<script>` 直接引入，用法与 pdfh5 快速开始一致。

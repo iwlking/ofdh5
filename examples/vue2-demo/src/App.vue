@@ -20,7 +20,7 @@
 </template>
 
 <script>
-import OfdViewer from '@ofdh5/vue2/src/OfdViewer.vue';
+import OfdViewer from 'ofdh5-vue2/src/OfdViewer.vue';
 
 export default {
   components: { OfdViewer },

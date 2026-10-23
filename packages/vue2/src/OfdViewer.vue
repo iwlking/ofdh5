@@ -3,7 +3,7 @@
 </template>
 
 <script>
-import { Ofdh5 } from '@ofdh5/core';
+import { Ofdh5 } from 'ofdh5';
 import { toOptions } from './options';
 
 const EVENTS = ['init', 'ready', 'error', 'success', 'complete', 'render', 'zoom', 'zoomStart', 'zoomEnd', 'scroll', 'backTop'];

@@ -12,8 +12,8 @@ export default defineConfig({
       fileName: (format) => (format === 'es' ? 'ofdh5-vue2.esm.js' : 'ofdh5-vue2.umd.js'),
     },
     rollupOptions: {
-      external: ['vue', '@ofdh5/core'],
-      output: { globals: { vue: 'Vue', '@ofdh5/core': 'Ofdh5' }, exports: 'named' },
+      external: ['vue', 'ofdh5'],
+      output: { globals: { vue: 'Vue', 'ofdh5': 'Ofdh5' }, exports: 'named' },
     },
   },
 });

@@ -19,9 +19,9 @@ iOS Safari 13+、Android Chrome 80+、微信内置浏览器、PC Chrome / Edge�
 ### npm
 
 ```bash
-npm i @ofdh5/core
+npm i ofdh5
 # Vue2 项目
-npm i @ofdh5/vue2 vue@^2.6
+npm i ofdh5-vue2 vue@^2.6
 ```
 
 ### script 直引（UMD）
@@ -42,12 +42,12 @@ npm i @ofdh5/vue2 vue@^2.6
 
 UMD 文件名是 `ofdh5.min.js`，全局变量 `Ofdh5` 就是构造函数，可直接 `new Ofdh5(container, options)`；辅助 API 挂在它的静态属性上（`Ofdh5.OfdError`、`Ofdh5.parsePage`）。
 
-也可使用 CDN：`https://unpkg.com/@ofdh5/core/dist/ofdh5.min.js`。
+也可使用 CDN：`https://unpkg.com/ofdh5/dist/ofdh5.min.js`。
 
 ## 快速开始
 
 ```js
-import { Ofdh5 } from '@ofdh5/core';
+import { Ofdh5 } from 'ofdh5';
 
 const ofd = new Ofdh5(document.querySelector('#demo'), {
   url: './doc.ofd',
@@ -85,7 +85,7 @@ const ofd = new Ofdh5(document.querySelector('#demo'), { data: buffer });
 
 ```js
 import Vue from 'vue';
-import Ofdh5Vue2 from '@ofdh5/vue2';
+import Ofdh5Vue2 from 'ofdh5-vue2';
 
 Vue.use(Ofdh5Vue2); // 注册全局组件 <ofd-viewer>
 ```
@@ -93,7 +93,7 @@ Vue.use(Ofdh5Vue2); // 注册全局组件 <ofd-viewer>
 按需引入：
 
 ```js
-import { OfdViewer } from '@ofdh5/vue2';
+import { OfdViewer } from 'ofdh5-vue2';
 
 export default {
   components: { OfdViewer },
@@ -378,10 +378,10 @@ pnpm build
 
 | 包 | 产物 |
 |---|---|
-| `@ofdh5/core` | `dist/ofdh5.esm.js`、`dist/ofdh5.umd.js`、`dist/ofdh5.min.js`（script 直引，全局 `Ofdh5` 为构造函数）、`dist/index.d.ts`（含类型声明树）、source map |
-| `@ofdh5/vue2` | `dist/ofdh5-vue2.esm.js`、`dist/ofdh5-vue2.umd.js`、`dist/style.css` |
+| `ofdh5` | `dist/ofdh5.esm.js`、`dist/ofdh5.umd.js`、`dist/ofdh5.min.js`（script 直引，全局 `Ofdh5` 为构造函数）、`dist/index.d.ts`（含类型声明树）、source map |
+| `ofdh5-vue2` | `dist/ofdh5-vue2.esm.js`、`dist/ofdh5-vue2.umd.js`、`dist/style.css` |
 
-vue2 的 UMD 产物把 `vue`、`@ofdh5/core` 作为外部依赖，需要先引入 Vue2 与 `ofdh5.umd.js`，使用 `Ofdh5Vue2` 全局。
+vue2 的 UMD 产物把 `vue`、`ofdh5` 作为外部依赖，需要先引入 Vue2 与 `ofdh5.umd.js`，使用 `Ofdh5Vue2` 全局。
 
 仓库脚本：
 
