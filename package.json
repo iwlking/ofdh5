@@ -9,8 +9,9 @@
     "test:e2e": "pnpm --filter vue2-demo e2e",
     "test:all": "pnpm test && pnpm test:vue2 && pnpm test:e2e",
     "fixtures": "node scripts/make-fixtures.mjs",
-    "release": "pnpm --filter @ofdh5/core publish --access public --registry=https://registry.npmjs.org --no-git-checks && pnpm --filter @ofdh5/vue2 publish --access public --registry=https://registry.npmjs.org --no-git-checks",
-    "release:dry": "pnpm --filter @ofdh5/core publish --dry-run --no-git-checks && pnpm --filter @ofdh5/vue2 publish --dry-run --no-git-checks"
+    "publish:aliyun": "pnpm --filter @ofdh5/core publish --no-git-checks --registry=https://packages.aliyun.com/6247af2154d036291ae14403/npm/npm-registry/ && pnpm --filter @ofdh5/vue2 publish --no-git-checks --registry=https://packages.aliyun.com/6247af2154d036291ae14403/npm/npm-registry/",
+    "publish:npmjs": "pnpm --filter @ofdh5/core publish --access public --no-git-checks --registry=https://registry.npmjs.org/ && pnpm --filter @ofdh5/vue2 publish --access public --no-git-checks --registry=https://registry.npmjs.org/",
+    "publish:aliyun:dry": "pnpm --filter @ofdh5/core publish --dry-run --no-git-checks --registry=https://packages.aliyun.com/6247af2154d036291ae14403/npm/npm-registry/"
   },
   "devDependencies": {
     "fflate": "^0.8.3",
