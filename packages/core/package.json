@@ -5,10 +5,10 @@
   "main": "./dist/ofdh5.umd.js",
   "module": "./dist/ofdh5.esm.js",
   "types": "./dist/index.d.ts",
-  "unpkg": "./dist/ofdh5.umd.js",
+  "unpkg": "./dist/ofdh5.min.js",
   "files": ["dist"],
   "scripts": {
-    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly --outDir dist",
+    "build": "vite build && vite build --config vite.standalone.config.mts && tsc -p tsconfig.build.json --emitDeclarationOnly --outDir dist",
     "test": "vitest run"
   },
   "dependencies": {

@@ -29,10 +29,9 @@ npm i @ofdh5/vue2 vue@^2.6
 ```html
 <div id="demo" style="height: 100vh"></div>
 
-<script src="./packages/core/dist/ofdh5.umd.js"></script>
+<script src="./packages/core/dist/ofdh5.min.js"></script>
 <script>
-  // UMD 的全局变量是模块命名空间，构造函数在 Ofdh5.Ofdh5 上
-  var ofd = new Ofdh5.Ofdh5(document.querySelector('#demo'), {
+  var ofd = new Ofdh5(document.querySelector('#demo'), {
     url: './doc.ofd',
   });
   ofd.on('ready', function () {
@@ -41,7 +40,9 @@ npm i @ofdh5/vue2 vue@^2.6
 </script>
 ```
 
-也可使用 CDN：`https://unpkg.com/@ofdh5/core/dist/ofdh5.umd.js`。
+UMD 文件名是 `ofdh5.min.js`，全局变量 `Ofdh5` 就是构造函数，可直接 `new Ofdh5(container, options)`；辅助 API 挂在它的静态属性上（`Ofdh5.OfdError`、`Ofdh5.parsePage`）。
+
+也可使用 CDN：`https://unpkg.com/@ofdh5/core/dist/ofdh5.min.js`。
 
 ## 快速开始
 
@@ -362,7 +363,7 @@ pnpm build
 
 | 包 | 产物 |
 |---|---|
-| `@ofdh5/core` | `dist/ofdh5.esm.js`、`dist/ofdh5.umd.js`、`dist/index.d.ts`（含类型声明树）、source map |
+| `@ofdh5/core` | `dist/ofdh5.esm.js`、`dist/ofdh5.umd.js`、`dist/ofdh5.min.js`（script 直引，全局 `Ofdh5` 为构造函数）、`dist/index.d.ts`（含类型声明树）、source map |
 | `@ofdh5/vue2` | `dist/ofdh5-vue2.esm.js`、`dist/ofdh5-vue2.umd.js`、`dist/style.css` |
 
 vue2 的 UMD 产物把 `vue`、`@ofdh5/core` 作为外部依赖，需要先引入 Vue2 与 `ofdh5.umd.js`，使用 `Ofdh5Vue2` 全局。
@@ -388,7 +389,7 @@ pnpm dev          # http://127.0.0.1:5173
 pnpm e2e          # Playwright 端到端测试
 ```
 
-UMD 直引示例需要从仓库根目录起一个静态服务（页面用相对路径引用 `packages/core/dist/ofdh5.umd.js`）：
+UMD 直引示例需要从仓库根目录起一个静态服务（页面用相对路径引用 `packages/core/dist/ofdh5.min.js`）：
 
 ```bash
 python -m http.server 5190
