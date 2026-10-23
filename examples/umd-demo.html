@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ofdh5 UMD demo</title>
+    <style>
+      html,
+      body,
+      #demo {
+        height: 100%;
+        margin: 0;
+      }
+      #status {
+        position: fixed;
+        left: 8px;
+        bottom: 8px;
+        padding: 4px 8px;
+        font: 12px/1.5 -apple-system, "Segoe UI", sans-serif;
+        color: #333;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="demo"></div>
+    <div id="status">加载中…</div>
+    <script src="../packages/core/dist/ofdh5.umd.js"></script>
+    <script>
+      // UMD 的全局变量是模块命名空间，构造函数在 Ofdh5.Ofdh5 上
+      var statusEl = document.getElementById('status');
+      var ofd = new Ofdh5.Ofdh5(document.querySelector('#demo'), {
+        url: '../examples/vue2-demo/public/fixtures/multi-page.ofd',
+      });
+
+      ofd.on('ready', function () {
+        console.log('总页数：' + this.totalNum);
+        statusEl.textContent = '总页数：' + this.totalNum;
+      });
+
+      ofd.on('error', function (msg) {
+        statusEl.textContent = '加载失败：' + msg;
+      });
+    </script>
+  </body>
+</html>

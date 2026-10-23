@@ -5,6 +5,9 @@
   "scripts": {
     "build": "pnpm --filter @ofdh5/core build && pnpm --filter @ofdh5/vue2 build",
     "test": "pnpm --filter @ofdh5/core test",
+    "test:vue2": "pnpm --filter @ofdh5/vue2 test",
+    "test:e2e": "pnpm --filter vue2-demo e2e",
+    "test:all": "pnpm test && pnpm test:vue2 && pnpm test:e2e",
     "fixtures": "node scripts/make-fixtures.mjs"
   },
   "devDependencies": {
