@@ -26,7 +26,7 @@ describe('OfdZip', () => {
   it('读取文本文件', () => {
     const zip = new OfdZip(makeZip({ 'OFD.xml': '<ofd:OFD/>' }));
     expect(zip.readText('OFD.xml')).toContain('OFD');
-    expect(zip.has('ofd.xml')).toBe(true); // 大小写敏感
+    expect(zip.has("ofd.xml")).toBe(true); // 查找不区分大小写
     expect(zip.has('other.xml')).toBe(false);
   });
 
