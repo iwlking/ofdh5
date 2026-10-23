@@ -124,11 +124,11 @@ interface TextItem extends BaseItem {
   fill?: RgbColor;
   stroke?: RgbColor;
   hScale?: number;
-  glyphs: GlyphGlyph[];     // 逐字定位数据
+  glyphs: Glyph[];          // 逐字定位数据
   text?: string;            // 便于调试/后续文本层
 }
 
-interface GlyphGlyph { x: number; y: number; deltaX?: number; deltaY?: number; code: number; }
+interface Glyph { x: number; y: number; deltaX?: number; deltaY?: number; code: number; }
 
 interface PathItem extends BaseItem {
   kind: 'path';
@@ -141,9 +141,8 @@ interface PathItem extends BaseItem {
 
 interface ImageItem extends BaseItem {
   kind: 'image';
-  resId: string;
+  resId: string;            // 资源对象索引，字节存在资源表而非 IR 内
   mime: string;
-  data: Uint8Array;         // 原始图片字节
   width: number;            // 像素
   height: number;
 }
@@ -156,11 +155,21 @@ interface ImageItem extends BaseItem {
 3. 字距使用 Glyphs 的 `X/Y/DeltaX` 逐字推进，**不依赖 `ctx.measureText`**，避免累积漂移。
 4. 字体加载失败或降级时触发 `fontFallback` 事件，参数为 `(pageNum, fontName)`。
 
-### 4.7 加载与内存
+### 4.7 图片资源
+
+解压后图片字节存放在资源表中，按 `resId` 引用；渲染时才解码，成功后以 `ImageBitmap`（不支持时回退 `HTMLImageElement`）缓存在 LRU 里，IR 本身不持有大块字节。
+
+### 4.8 加载与内存
 
 - 整包下载后全量解压到内存，只保留目录与资源索引，Content.xml 按页解析并缓存 IR。
 - 可视区 ±2 页做 canvas 渲染，离屏页位图按 LRU 回收，上限 `maxCachedPages`（默认 6）。
 - 渲染 DPR 上限 `maxDpr`（默认 2）；单页画布面积超限时自动降至 DPR 1 重试一次。
+
+### 4.9 运行环境
+
+- 目标：iOS Safari 13+、Android Chrome 80+、微信内置浏览器（X5 / Blink 内核）、PC Chrome / Edge。
+- 依赖的浏览器能力：`DOMParser`、`Path2D`、`FontFace`、`createImageBitmap`（不可用时回退 `new Image()` + Blob URL）。
+- 不引入 polyfill；`Promise`/`async` 由目标浏览器原生提供。
 
 ## 5. API 设计
 
@@ -180,6 +189,8 @@ const ofd = new Ofdh5(document.querySelector('#demo'), { url: './doc.ofd' });
 | pdfh5 | ofdh5 | 说明 |
 |---|---|---|
 | `pdfurl` | `url` | 主用 `url`，同时接受 `pdfurl` 别名 |
+
+`url` 为字符串；`data` 接受 `ArrayBuffer`、`Uint8Array`、`Blob`，与 `url` 二选一（同时存在时以 `data` 优先）。
 
 语义调整：
 `lazyLoad` 默认值由 `false` 改为 `true`。
@@ -211,6 +222,8 @@ const ofd = new Ofdh5(document.querySelector('#demo'), { url: './doc.ofd' });
 | `init` `ready` `error` `success` `complete` `render` `zoom` `zoomStart` `zoomEnd` `scroll` `backTop` `zoomEnabled` `scrollEnabled` `show` `hide` `destroy` | `pageLoaded` `pageCleaned` `annotationAdded` `annotationRemoved` `annotationUpdated` `annotationModeChanged` `annotationSelected` | `pageError(pageNum, error)` `fontFallback(pageNum, fontName)` |
 
 事件回调统一以实例为 `this`，与 pdfh5 一致。
+
+时序：`init`（开始初始化）→ `ready`（元数据解析完成，可读 `totalNum`/页数）→ 逐页 `render` → `success`（全部渲染完成）→ `complete('success' | 'error')`。
 
 ### 5.5 getStatus() 返回
 
@@ -245,6 +258,7 @@ const ofd = new Ofdh5(document.querySelector('#demo'), { url: './doc.ofd' });
 - 通过 `ref` 暴露内核实例的方法：`this.$refs.viewer.goToPage(3)`。
 - 组件 `beforeDestroy` 时调用内核 `destroy()`。
 - `peerDependencies: vue ^2.6.0`；提供 `install` 支持 `Vue.use`。
+- 组件事件名用 kebab-case，由内核事件映射而来：`page-change` 由内核 `scroll` 中 `currentNum` 变化时派发（内核不新增该事件，保持与 pdfh5 一致）；`ready`/`error`/`complete`/`zoom`/`zoom-start`/`zoom-end` 一一对应透传。
 
 ## 6. 错误处理
 
@@ -316,8 +330,8 @@ const ofd = new Ofdh5(document.querySelector('#demo'), { url: './doc.ofd' });
 | 移动端 canvas 面积上限 | 大页面白屏 | DPR 降级重试机制 |
 | 缺少真实公文样例 | 测不出真实问题 | 先用自造 fixture，M2 后补充 2-3 个脱敏真实文件 |
 
-## 10. 待确认事项
+## 10. 发布与命名
 
-1. npm 包名与 scope（暂定 `@ofdh5/core`、`@ofdh5/vue2`）。
-2. 是否发布到私有 registry。
-3. 真实脱敏 OFD 样例的提供方与时间。
+- 包名：`@ofdh5/core`、`@ofdh5/vue2`。若无需 scope，改为 `ofdh5`、`ofdh5-vue2`，与 pdfh5 的命名习惯保持一致。
+- 发布：先本地 `file:` 引用接入 vue2 项目验证，稳定后再发 npm（公开或私有 registry 均可）。
+- UMD 产物文件名 `ofdh5.umd.min.js`，配套 `ofdh5.css`，支持 `<script>` 直接引入，用法与 pdfh5 快速开始一致。
