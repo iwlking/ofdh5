@@ -13,7 +13,7 @@ export default defineConfig({
     },
     rollupOptions: {
       external: ['vue', '@ofdh5/core'],
-      output: { globals: { vue: 'Vue', '@ofdh5/core': 'Ofdh5' } },
+      output: { globals: { vue: 'Vue', '@ofdh5/core': 'Ofdh5' }, exports: 'named' },
     },
   },
 });

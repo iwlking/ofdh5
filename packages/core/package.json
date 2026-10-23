@@ -1,15 +1,20 @@
 {
   "name": "@ofdh5/core",
   "version": "0.1.0",
-  "description": "OFD preview for mobile web, pdfh5-compatible API",
+  "description": "OFD (GB/T 33190-2016) preview for mobile web: pure-frontend canvas renderer with pdfh5-compatible API",
   "main": "./dist/ofdh5.umd.js",
   "module": "./dist/ofdh5.esm.js",
   "types": "./dist/index.d.ts",
   "unpkg": "./dist/ofdh5.min.js",
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "vite build && vite build --config vite.standalone.config.mts && tsc -p tsconfig.build.json --emitDeclarationOnly --outDir dist",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "fflate": "^0.8.2"
@@ -20,5 +25,26 @@
     "typescript": "^5.6.3",
     "vite": "^5.4.10",
     "vitest": "^2.1.4"
+  },
+  "keywords": [
+    "ofd",
+    "ofd.js",
+    "ofd-viewer",
+    "ofd-preview",
+    "canvas",
+    "h5",
+    "mobile",
+    "pdfh5",
+    "document"
+  ],
+  "license": "MIT",
+  "author": "ofdh5 contributors",
+  "engines": {
+    "node": ">=16"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

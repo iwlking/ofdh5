@@ -8,7 +8,9 @@
     "test:vue2": "pnpm --filter @ofdh5/vue2 test",
     "test:e2e": "pnpm --filter vue2-demo e2e",
     "test:all": "pnpm test && pnpm test:vue2 && pnpm test:e2e",
-    "fixtures": "node scripts/make-fixtures.mjs"
+    "fixtures": "node scripts/make-fixtures.mjs",
+    "release": "pnpm --filter @ofdh5/core publish --access public --registry=https://registry.npmjs.org --no-git-checks && pnpm --filter @ofdh5/vue2 publish --access public --registry=https://registry.npmjs.org --no-git-checks",
+    "release:dry": "pnpm --filter @ofdh5/core publish --dry-run --no-git-checks && pnpm --filter @ofdh5/vue2 publish --dry-run --no-git-checks"
   },
   "devDependencies": {
     "fflate": "^0.8.3",
