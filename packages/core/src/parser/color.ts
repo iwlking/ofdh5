@@ -45,7 +45,8 @@ export function parseColor(value: string | null, alpha?: string | null): RgbColo
   if (alpha != null && alpha !== '') {
     const parsed = Number.parseFloat(alpha);
     if (Number.isFinite(parsed)) {
-      a = parsed > 1 ? Math.min(1, parsed / 255) : Math.max(0, parsed);
+      // 128/255 这类换算会带来长尾小数，保留三位足够表达 8bit Alpha
+      a = Math.round((parsed > 1 ? Math.min(1, parsed / 255) : Math.max(0, parsed)) * 1000) / 1000;
     }
   }
 
