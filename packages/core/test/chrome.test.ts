@@ -55,7 +55,7 @@ describe('createChrome', () => {
     expect(container.querySelector('.ofdh5-page-num-bg')).not.toBeNull();
     expect(container.querySelector('.ofdh5-page-num-text')).not.toBeNull();
     expect(container.querySelector('.ofdh5-glimmer')).not.toBeNull();
-    expect(STYLE_TEXT).toContain('background:#7bcf34');
+    expect(STYLE_TEXT).toContain('background:#fa8c16');
     expect(STYLE_TEXT).toContain('box-shadow:darkgrey');
     chrome.destroy();
   });
