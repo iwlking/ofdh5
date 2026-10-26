@@ -4,9 +4,12 @@ import { OfdZip } from './zip';
 import { parseOfdPackage } from './parser/package';
 import { parseDocumentMeta, type DocumentMeta } from './parser/document';
 import { parsePage } from './parser/content';
+import { parseAnnotations, stampItems, type StampAnnotation } from './parser/annotations';
+import { parseSignatureSeals, type SealPackage } from './parser/signature';
+import { bindResourceSource } from './parser/resources';
 import { createResources, type ImageItem, type Page, type PageResources } from './types';
 import { createFontRegistry, type FontRegistry } from './render/fonts';
-import { createImageCache, type DecodedImage, type ImageCache } from './render/images';
+import { createImageCache, isRasterImage, type ImageCache } from './render/images';
 import { createViewport } from './render/viewport';
 import { paintPage } from './render/painter';
 import { createChrome, type Chrome } from './ui/chrome';
@@ -29,11 +32,17 @@ export interface Ofdh5Options {
   tapZoomFactor?: number;
   maxZoom?: number;
   minZoom?: number;
+  /** 越界回弹的阻尼系数，默认 0.35 */
+  dampingFactor?: number;
   maxCachedPages?: number;
   maxDpr?: number;
   pageGap?: number;
   backgroundColor?: string;
   fontFallback?: string;
+  /** 字体文件基地址（类似 pdfh5 的 standardFontDataUrl），无内嵌字体时按需 fetch */
+  fontUrl?: string;
+  /** 字体名映射：{ "楷体": "simkai.ttf" } 或 { "楷体": "MyKai" } */
+  fontMap?: Record<string, string>;
   timeout?: number;
 }
 
@@ -84,11 +93,14 @@ interface ResolvedOptions {
   tapZoomFactor: number;
   maxZoom: number;
   minZoom: number;
+  dampingFactor: number;
   maxCachedPages: number;
   maxDpr: number;
   pageGap: number;
   backgroundColor: string;
   fontFallback: string;
+  fontUrl?: string;
+  fontMap?: Record<string, string>;
   timeout: number;
 }
 
@@ -107,12 +119,16 @@ function resolveOptions(raw: Ofdh5Options = {}): ResolvedOptions {
     backTop: raw.backTop !== false,
     tapZoomFactor: raw.tapZoomFactor ?? 2,
     maxZoom: raw.maxZoom ?? 4,
-    minZoom: raw.minZoom ?? 0.5,
+    // 默认加载尺寸就是最小尺寸：缩小到 1 倍以内会回弹
+    minZoom: raw.minZoom ?? 1,
+    dampingFactor: raw.dampingFactor ?? 0.35,
     maxCachedPages: raw.maxCachedPages ?? 6,
     maxDpr: raw.maxDpr ?? 2,
     pageGap: raw.pageGap ?? 8,
     backgroundColor: raw.backgroundColor ?? '#fff',
     fontFallback: raw.fontFallback ?? 'sans-serif',
+    fontUrl: raw.fontUrl,
+    fontMap: raw.fontMap,
     timeout: raw.timeout ?? 30000,
   };
 }
@@ -138,6 +154,9 @@ export class Ofdh5 {
   private images: ImageCache | null = null;
 
   private pageCache = new Map<number, Page>();
+  private annotations: Map<string, StampAnnotation[]> | null = null;
+  /** 外层 PageID → 签名内嵌的印章外观页 */
+  private signatureSeals: Map<string, SealPackage[]> | null = null;
   private placeholders: HTMLElement[] = [];
   private rendered = new Set<number>();
   private rendering = new Set<number>();
@@ -156,7 +175,10 @@ export class Ofdh5 {
     this.container = container;
     this.opts = resolveOptions(options);
     this.bus = new EventBus<Ofdh5Events>(this);
-    this.fonts = createFontRegistry(this.opts.fontFallback);
+    this.fonts = createFontRegistry(this.opts.fontFallback, {
+      fontMap: this.opts.fontMap,
+      fontBaseUrl: this.opts.fontUrl,
+    });
     this.loaded = new Promise<void>((resolve) => {
       this.resolveLoaded = resolve;
     });
@@ -196,7 +218,17 @@ export class Ofdh5 {
 
     const pkg = parseOfdPackage(zip.readText('OFD.xml'));
     const docRoot = pkg.docRoots[0];
-    this.meta = parseDocumentMeta(zip.readText(docRoot), docRoot);
+    const documentXml = zip.readText(docRoot);
+    this.meta = parseDocumentMeta(documentXml, docRoot);
+    try {
+      this.annotations = parseAnnotations(zip, docRoot, documentXml);
+    } catch (error) {
+      console.warn('[ofdh5] 注释解析失败，跳过签章:', error);
+      this.annotations = null;
+    }
+    // parseSignatureSeals 内部逐个签名 try/catch，异常结构只会被跳过
+    this.signatureSeals = parseSignatureSeals(zip, docRoot, documentXml);
+    bindResourceSource(this.resources, zip, docRoot);
     this.totalNum = this.meta.pages.length;
     this.status = 'ready';
 
@@ -247,7 +279,10 @@ export class Ofdh5 {
       const page = document.createElement('div');
       page.className = 'ofdh5-page';
       page.dataset.index = String(i);
-      page.style.height = `${Math.round(width * ratio)}px`;
+      // 页面盒子的宽高必须跟渲染出来的 canvas 完全一致，否则阴影和内容会错位
+      const pageWidth = Math.round(width * this.opts.scale);
+      page.style.width = `${pageWidth}px`;
+      page.style.height = `${Math.round(pageWidth * ratio)}px`;
       page.style.marginBottom = `${this.opts.pageGap}px`;
       viewer.appendChild(page);
       this.placeholders.push(page);
@@ -259,6 +294,7 @@ export class Ofdh5 {
       minScale: this.opts.minZoom,
       maxScale: this.opts.maxZoom,
       tapZoomFactor: this.opts.tapZoomFactor,
+      damping: this.opts.dampingFactor,
       enabled: this.opts.zoomEnable,
       onZoom: (scale) => this.bus.trigger('zoom', scale),
       onZoomStart: () => this.bus.trigger('zoomStart'),
@@ -291,10 +327,9 @@ export class Ofdh5 {
   private async ensureFonts(pageNum: number): Promise<void> {
     if (!this.zip) return;
     for (const [id, font] of this.resources.fonts) {
-      if (this.fonts.has(id) || !font.file) continue;
-      const data = this.zip.read(font.file);
-      if (!data) continue;
-      const ok = await this.fonts.register(id, data, font.family || font.name);
+      if (this.fonts.has(id)) continue;
+      const data = font.file ? this.zip.read(font.file) : null;
+      const ok = await this.fonts.register(id, data ?? null, font.family || font.name);
       if (!ok) this.bus.trigger('fontFallback', pageNum, font.name || font.family);
     }
   }
@@ -326,6 +361,13 @@ export class Ofdh5 {
       height: this.meta.height,
     }, loc);
 
+    const pageId = this.meta.pages[index].id;
+    const stamps = this.annotations?.get(pageId);
+    if (stamps && stamps.length > 0) {
+      // 印章叠加在正文之后，保证绘制在页面对象之上
+      parsed.items.push(...stampItems(stamps, this.resources, this.signatureSeals?.get(pageId) ?? []));
+    }
+
     this.pageCache.set(index, parsed);
     return parsed;
   }
@@ -337,7 +379,7 @@ export class Ofdh5 {
       if (item.kind !== 'image') continue;
       const resource = this.resources.images.get(item.resId);
       if (!resource) continue;
-      jobs.push(this.images.load(resource.id, resource.file));
+      jobs.push(this.images.load(resource.id, resource.file, resource.format));
     }
     await Promise.all(jobs);
   }
@@ -359,6 +401,9 @@ export class Ofdh5 {
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(viewport.cssWidth * viewport.dpr);
       canvas.height = Math.round(viewport.cssHeight * viewport.dpr);
+      // 以 canvas 实际尺寸为准回写页面盒子，scale 变化后仍严丝合缝
+      placeholder.style.width = `${viewport.cssWidth}px`;
+      placeholder.style.height = `${viewport.cssHeight}px`;
       canvas.style.width = `${viewport.cssWidth}px`;
       canvas.style.height = `${viewport.cssHeight}px`;
 
@@ -370,7 +415,8 @@ export class Ofdh5 {
         fontFamily: (fontRef) => this.fonts.family(fontRef, this.resources.fonts.get(fontRef)?.family),
         getImage: (item) => {
           const decoded = this.images?.get(item.resId);
-          return (decoded as DecodedImage | undefined) ?? null;
+          if (!decoded || isRasterImage(decoded)) return null;
+          return decoded as CanvasImageSource;
         },
         onItemError: () => {
           this.skippedObjects += 1;

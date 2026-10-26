@@ -140,3 +140,63 @@ describe('paintPage', () => {
     warn.mockRestore();
   });
 });
+
+describe('文字逐字定位的回归用例', () => {
+  function makePage(items: Page['items']): Page {
+    return { index: 0, width: 100, height: 200, items };
+  }
+
+  it('最后一个字没有 DeltaX 时接在行尾，不能跳回行首', () => {
+    const ctx = recordingCtx();
+    const page = makePage([
+      {
+        kind: 'text',
+        boundary: [0, 0, 100, 10],
+        fontRef: '9',
+        size: 4,
+        fill: { r: 0, g: 0, b: 0, a: 1 },
+        glyphs: [
+          { x: 0, y: 5, deltaX: 3, code: 65 },
+          { x: 3, y: 5, deltaX: 3, code: 66 },
+          { x: 6, y: 5, code: 67 },
+        ],
+        text: 'ABC',
+      },
+    ]);
+    paintPage(ctx, page, createViewport(page, 200, 1, 2), {
+      background: '#fff',
+      fontFamily: () => 'sans-serif',
+      getImage: () => null,
+    });
+    const xs = ctx.calls.filter((c) => c[0] === 'fillText').map((c) => c[2]);
+    expect(xs).toEqual([0, 3, 6]);
+  });
+
+  it('竖排文字只用 DeltaY：x 不变、y 累加', () => {
+    const ctx = recordingCtx();
+    const page = makePage([
+      {
+        kind: 'text',
+        boundary: [0, 0, 10, 40],
+        fontRef: '9',
+        size: 4,
+        fill: { r: 0, g: 0, b: 0, a: 1 },
+        glyphs: [
+          { x: 0, y: 0, deltaY: 6.35, code: 65 },
+          { x: 0, y: 6.35, deltaY: 6.35, code: 66 },
+          { x: 0, y: 12.7, code: 67 },
+        ],
+        text: 'ABC',
+      },
+    ]);
+    paintPage(ctx, page, createViewport(page, 200, 1, 2), {
+      background: '#fff',
+      fontFamily: () => 'sans-serif',
+      getImage: () => null,
+    });
+    const calls = ctx.calls.filter((c) => c[0] === 'fillText');
+    expect(calls.map((c) => c[2])).toEqual([0, 0, 0]);
+    expect(calls.map((c) => c[3])).toEqual([0, 6.35, 12.7]);
+  });
+});
+

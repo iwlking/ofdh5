@@ -6,4 +6,6 @@ export { parseOfdPackage } from './parser/package';
 export { parseDocumentMeta } from './parser/document';
 export { parsePage } from './parser/content';
 export { OfdZip } from './zip';
+export { decodeJbig2, Jbig2Error } from './render/jbig2';
+export type { Jbig2Image, Jbig2ErrorCode } from './render/jbig2';
 export type { Page, PageItem, TextItem, PathItem, ImageItem, RgbColor, Glyph } from './types';

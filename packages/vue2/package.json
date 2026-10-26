@@ -1,6 +1,6 @@
 {
   "name": "ofdh5-vue2",
-  "version": "0.1.0",
+  "version": "0.1.9",
   "main": "./dist/ofdh5-vue2.umd.js",
   "module": "./dist/ofdh5-vue2.esm.js",
   "types": "./types/index.d.ts",

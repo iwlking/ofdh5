@@ -419,5 +419,10 @@ python -m http.server 5190
 - `maxCachedPages` 目前只保留选项，页面 canvas 尚未按 LRU 回收；`getCacheStats()` 的 `cachedPages` 与 `rendered` 相同。
 - `setZoomConstraints()` 只更新内部约束值，初始化时创建的缩放实例不受影响；请通过 `minZoom` / `maxZoom` 选项设置。
 - 懒加载只渲染当前页及前后各 1 页。
-- 图片解码交给浏览器，实际支持的图片格式取决于浏览器嗅探结果。
+- PNG/JPEG/GIF/BMP 交给浏览器解码，实际支持范围取决于浏览器嗅探结果。
+- JBIG2（OFD 的 GBIG2）由内置解码器处理：覆盖页信息段与通用区域段（算术编码模板 0-3、典型预测、MMR 暂不支持）；符号字典、文本区域、半色调区域等暂不支持，遇到时只跳过该图，不影响整页渲染。
 - 无文本层，文本不可选中，也不支持搜索。
+
+- 签章：只渲染 `<ofd:Annot Type="Stamp">` 且外观带 `ResourceID` 的印章；`Subtype="SignatureInFile"` 这类把印章放在签名值里的文件无法在前端还原，需要服务端出图。
+- 字体：优先用内嵌 `FontFile`；没有内嵌字体时按替换表（宋体/楷体/黑体/仿宋/微软雅黑 等）使用本机字体，可用 `fontMap` 选项映射到自定义 webfont。
+- 模板页（`<ofd:TemplatePage>`）已支持，按 `ZOrder` 作为背景或前景层参与渲染。

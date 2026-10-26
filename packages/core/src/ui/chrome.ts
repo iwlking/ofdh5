@@ -21,7 +21,7 @@ export const STYLE_TEXT = `
 .ofdh5{position:relative;width:100%;height:100%;overflow:hidden;background:#fff;}
 .ofdh5-scroller{position:relative;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;transition:all .3s;}
 .ofdh5-sizer{position:relative;width:100%;height:100%;}
-.ofdh5-viewer{position:relative;top:0;left:0;padding:10px 8px;}
+.ofdh5-viewer{position:relative;top:0;left:0;padding:10px 8px;box-sizing:border-box;}
 .ofdh5-page{margin:0 auto 8px auto;position:relative;overflow:visible;box-shadow:darkgrey 0px 1px 3px 0px;background-color:#fff;box-sizing:border-box;}
 .ofdh5-page canvas{width:100%;height:100%;position:relative;z-index:100;user-select:none;pointer-events:none;display:block;}
 .ofdh5-page-error{display:flex;align-items:center;justify-content:center;height:100%;color:#999;font-size:16px;background:#fff;}

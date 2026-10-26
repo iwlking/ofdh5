@@ -131,4 +131,53 @@ write('image.ofd', {
 </ofd:Page>`,
 });
 
+// 6. 文档级 PublicRes（BaseLoc 指向独立 Res.xml）+ 页面 Use：字体 / 图片 / ColorSpace / DrawParam
+write('publicres.ofd', {
+  'OFD.xml': ofdXml(),
+  'Doc_0/Document.xml': `<?xml version="1.0" encoding="UTF-8"?>
+<ofd:Document xmlns:ofd="http://www.ofdspec.org/2016">
+  <ofd:CommonData>
+    <ofd:PageArea><ofd:PhysicalBox>0 0 210 297</ofd:PhysicalBox></ofd:PageArea>
+    <ofd:PublicRes BaseLoc="Res.xml"/>
+  </ofd:CommonData>
+  <ofd:Pages>
+    <ofd:Page ID="1" BaseLoc="Pages/Page_0/Content.xml"/>
+  </ofd:Pages>
+</ofd:Document>`,
+  'Doc_0/Res.xml': `<?xml version="1.0" encoding="UTF-8"?>
+<ofd:Res xmlns:ofd="http://www.ofdspec.org/2016">
+  <ofd:Fonts>
+    <ofd:Font ID="9" FontName="SimSun" FamilyName="宋体"><ofd:FontFile>Res/Font_9.ttf</ofd:FontFile></ofd:Font>
+  </ofd:Fonts>
+  <ofd:MultiMedias>
+    <ofd:MultiMedia ID="50" Type="Image"><ofd:MediaFile>Res/logo.png</ofd:MediaFile></ofd:MultiMedia>
+  </ofd:MultiMedias>
+  <ofd:ColorSpaces>
+    <ofd:ColorSpace ID="10" Type="RGB" BitsPerComponent="8"/>
+  </ofd:ColorSpaces>
+  <ofd:DrawParams>
+    <ofd:DrawParam ID="20" LineWidth="0.8">
+      <ofd:StrokeColor Value="0 0 255" ColorSpace="10"/>
+      <ofd:FillColor Value="0 255 0" ColorSpace="10"/>
+    </ofd:DrawParam>
+  </ofd:DrawParams>
+</ofd:Res>`,
+  'Doc_0/Res/logo.png': PNG_1X1,
+  'Doc_0/Pages/Page_0/Content.xml': `<?xml version="1.0" encoding="UTF-8"?>
+<ofd:Page xmlns:ofd="http://www.ofdspec.org/2016">
+  <ofd:Area><ofd:PhysicalBox>0 0 210 297</ofd:PhysicalBox></ofd:Area>
+  <ofd:Content><ofd:Layer ID="1">
+    <ofd:PathObject ID="2" Boundary="20 20 100 40" DrawParam="20" Stroke="true" Fill="true">
+      <ofd:AbbreviatedData>M 0 0 L 100 0 L 100 40 L 0 40 C</ofd:AbbreviatedData>
+      <ofd:FillColor ColorSpace="10" Value="255 0 0"/>
+    </ofd:PathObject>
+    <ofd:ImageObject ID="3" Boundary="10 200 20 20" ResourceID="50"/>
+    <ofd:TextObject ID="4" Boundary="20 100 100 10" Font="9" Size="5" Fill="true" Stroke="false">
+      <ofd:FillColor Value="0 0 0"/>
+      <ofd:TextCode X="0" Y="5" DeltaX="5 5 5">发票</ofd:TextCode>
+    </ofd:TextObject>
+  </ofd:Layer></ofd:Content>
+</ofd:Page>`,
+});
+
 console.log('fixtures written to', outDir);

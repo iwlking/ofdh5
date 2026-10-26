@@ -25,7 +25,8 @@ import OfdViewer from 'ofdh5-vue2/src/OfdViewer.vue';
 export default {
   components: { OfdViewer },
   data() {
-    return { url: '/fixtures/multi-page.ofd', page: 1, total: 0 };
+    const requested = new URLSearchParams(window.location.search).get('file');
+    return { url: requested || '/fixtures/multi-page.ofd', page: 1, total: 0 };
   },
   methods: {
     onReady() {

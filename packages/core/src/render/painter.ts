@@ -40,16 +40,21 @@ function drawText(ctx: CanvasRenderingContext2D, item: TextItem, opts: PaintOpti
     ctx.lineWidth = item.size * 0.02;
   }
 
-  let cursor = 0;
+  // 坐标已在解析层累加成绝对值；OFD 的 DeltaX 只给出 n-1 个步进，
+  // 最后一个字没有步进，必须接在上一个字后面，否则会跳回行首和第一个字重叠。
+  let cursor = item.glyphs[0]?.x ?? 0;
   for (let i = 0; i < item.glyphs.length; i++) {
     const glyph = item.glyphs[i];
-    if (glyph.deltaX != null || i === 0) cursor = glyph.x;
     const char = item.text[i];
+    const positioned = i === 0 || glyph.deltaX != null || glyph.deltaY != null;
+    const x = positioned ? glyph.x : cursor;
     if (char) {
-      ctx.fillText(char, cursor, glyph.y);
-      if (item.stroke) ctx.strokeText(char, cursor, glyph.y);
+      ctx.fillText(char, x, glyph.y);
+      if (item.stroke) ctx.strokeText(char, x, glyph.y);
     }
-    cursor += glyph.deltaX ?? (char ? ctx.measureText(char).width : 0);
+    if (glyph.deltaX != null) cursor = x + glyph.deltaX;
+    else if (glyph.deltaY == null) cursor = x + (char ? ctx.measureText(char).width : 0);
+    else cursor = x;
   }
   ctx.restore();
 }
@@ -71,13 +76,21 @@ function drawPath(ctx: CanvasRenderingContext2D, item: PathItem): void {
   ctx.restore();
 }
 
+/** 部分生成器会显式写恒等 CTM，此时图像尺寸应取自 boundary 而非单位正方形 */
+function isIdentity(ctm: number[]): boolean {
+  return ctm[0] === 1 && ctm[1] === 0 && ctm[2] === 0 && ctm[3] === 1 && ctm[4] === 0 && ctm[5] === 0;
+}
+
 function drawImage(ctx: CanvasRenderingContext2D, item: ImageItem, opts: PaintOptions): void {
   const image = opts.getImage(item);
   if (!image) return;
-  const [x, y, w, h] = item.boundary;
+  const w = item.boundary[2];
+  const h = item.boundary[3];
   ctx.save();
   applyCtm(ctx, item);
-  ctx.drawImage(image, 0, 0, w, h);
+  // OFD 的图像落在单位正方形内，由 CTM 决定实际尺寸（发票里的二维码常见 CTM="20 0 0 20 0 0"）
+  if (item.ctm && !isIdentity(item.ctm)) ctx.drawImage(image, 0, 0, 1, 1);
+  else ctx.drawImage(image, 0, 0, w, h);
   ctx.restore();
 }
 

@@ -5,3 +5,11 @@ examples/vue2-demo/node_modules/
 test-results/
 playwright-report/
 examples/vue2-demo/screenshots/
+
+# 真实业务测试文件，不入库（个人/企业信息）
+/packages/core/test/fixtures/invoice.ofd
+/examples/vue2-demo/public/fixtures/044002000311_72262900.ofd
+/examples/vue2-demo/public/fixtures/123.ofd
+/examples/vue2-demo/public/fixtures/test.ofd
+/examples/vue2-demo/public/fixtures/test2.ofd
+/examples/vue2-demo/public/fixtures/*copy.ofd

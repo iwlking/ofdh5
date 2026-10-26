@@ -47,3 +47,71 @@ test('销毁后容器清空', async ({ page }) => {
   });
   expect(empty).toBe('');
 });
+
+test('缩小不会小于加载尺寸（默认最小 = 1）', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('canvas').first()).toBeVisible();
+
+  const before = await page.locator('.ofdh5-page canvas').first().boundingBox();
+
+  for (let i = 0; i < 3; i++) {
+    await page.getByRole('button', { name: '缩小' }).click();
+    await page.waitForTimeout(120);
+  }
+
+  const after = await page.locator('.ofdh5-page canvas').first().boundingBox();
+  expect(Math.abs(after!.width - before!.width)).toBeLessThan(1);
+
+  const centerX = after!.x + after!.width / 2;
+  expect(Math.abs(centerX - 195)).toBeLessThan(8);
+});
+
+test('缩放后页面盒子与 canvas 尺寸一致，内容不溢出', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('canvas').first()).toBeVisible();
+
+  for (let i = 0; i < 3; i++) {
+    await page.getByRole('button', { name: '缩小' }).click();
+    await page.waitForTimeout(120);
+  }
+
+  const m = await page.evaluate(() => {
+    const box = document.querySelector('.ofdh5-page')!.getBoundingClientRect();
+    const canvas = document.querySelector('.ofdh5-page canvas')!.getBoundingClientRect();
+    return {
+      boxW: box.width, canvasW: canvas.width,
+      boxH: box.height, canvasH: canvas.height,
+      overflowRight: canvas.right - box.right,
+      overflowBottom: canvas.bottom - box.bottom,
+    };
+  });
+
+  expect(Math.abs(m.boxW - m.canvasW)).toBeLessThan(1.5);
+  expect(Math.abs(m.boxH - m.canvasH)).toBeLessThan(1.5);
+  expect(Math.abs(m.overflowRight)).toBeLessThan(1.5);
+  expect(Math.abs(m.overflowBottom)).toBeLessThan(1.5);
+});
+
+
+test('点击放大以容器中心为锚点，页面不往一侧跑', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('canvas').first()).toBeVisible();
+
+  const before = await page.locator('.ofdh5-page').first().boundingBox();
+  const beforeCenter = before!.x + before!.width / 2;
+
+  for (let i = 0; i < 3; i++) {
+    await page.getByRole('button', { name: '放大' }).click();
+    await page.waitForTimeout(150);
+  }
+
+  const after = await page.locator('.ofdh5-page').first().boundingBox();
+  const afterCenter = after!.x + after!.width / 2;
+
+  console.log('ZOOM', JSON.stringify({ beforeCenter, afterCenter, scale: after!.width / before!.width }));
+  expect(after!.width).toBeGreaterThan(before!.width * 1.2);
+  // 以容器中心为锚点缩放：页面中心应当留在视口中心附近
+  expect(Math.abs(afterCenter - 195)).toBeLessThan(12);
+  expect(Math.abs(afterCenter - beforeCenter)).toBeLessThan(12);
+});
+
