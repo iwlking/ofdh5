@@ -155,7 +155,7 @@ props 与内核 options 一一对应（未声明的 props 无法传入内核）�
 | `zoomEnable` | Boolean | 是否允许手势缩放，默认 true |
 | `scrollEnable` | Boolean | 是否允许滚动，默认 true |
 | `lazyLoad` | Boolean | 是否只渲染可视页附近，默认 true |
-| `loadingBar` | Boolean | 是否显示顶部加载条，默认 true |
+| `loadingBar` | Boolean | 是否显示顶部加载条，默认 false（首屏环形动效始终保留） |
 | `pageNum` | Boolean | 是否显示页码浮层，默认 true |
 | `backTop` | Boolean | 是否显示回到顶部按钮，默认 true |
 | `maxZoom` | Number | 手势最大缩放，默认 4 |
@@ -233,7 +233,7 @@ this.$refs.viewer.destroy();
 | `zoomEnable` | boolean | `true` | 是否允许双指/双击缩放 |
 | `resize` | boolean | `true` | 窗口尺寸变化时重建页面并重渲染 |
 | `lazyLoad` | boolean | `true` | 只渲染当前页及相邻页，否则渲染全部页 |
-| `loadingBar` | boolean | `true` | 顶部加载条，加载完成后隐藏 |
+| `loadingBar` | boolean | `false` | 顶部加载条，需显式开启；加载完成后隐藏 |
 | `pageNum` | boolean | `true` | 左上角页码浮层 |
 | `backTop` | boolean | `true` | 右下角回到顶部按钮 |
 | `tapZoomFactor` | number | `2` | 双击放大的目标倍数 |

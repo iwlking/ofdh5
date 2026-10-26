@@ -26,6 +26,7 @@ export interface Ofdh5Options {
   zoomEnable?: boolean;
   resize?: boolean;
   lazyLoad?: boolean;
+  /** 顶部加载进度条，默认关闭（首屏环形动效始终保留） */
   loadingBar?: boolean;
   /** 进度条与动效的最短展示时间（毫秒），避免小文件一闪而过，默认 400 */
   minLoadingDuration?: number;
@@ -117,7 +118,8 @@ function resolveOptions(raw: Ofdh5Options = {}): ResolvedOptions {
     zoomEnable: raw.zoomEnable !== false,
     resize: raw.resize !== false,
     lazyLoad: raw.lazyLoad !== false,
-    loadingBar: raw.loadingBar !== false,
+    // 顶部加载条默认关闭，需要时显式传 loadingBar: true
+    loadingBar: raw.loadingBar === true,
     minLoadingDuration: raw.minLoadingDuration ?? 400,
     pageNum: raw.pageNum !== false,
     backTop: raw.backTop !== false,
