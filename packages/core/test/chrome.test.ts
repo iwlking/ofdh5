@@ -91,37 +91,3 @@ describe('加载动效', () => {
   });
 
 });
-
-describe('进度条位置', () => {
-  it("loadingBarPosition='left' 渲染为左侧竖条，进度写 height", () => {
-    const box = document.createElement('div');
-    document.body.appendChild(box);
-    const chrome = createChrome(box, { loadingBar: true, pageNum: false, backTop: false, loadingBarPosition: 'left' });
-    const bar = box.querySelector('.ofdh5-loading') as HTMLElement;
-    const progress = box.querySelector('.ofdh5-progress') as HTMLElement;
-    expect(bar.classList.contains('is-left')).toBe(true);
-
-    chrome.setProgress(0.5);
-    expect(progress.style.height).toBe('50%');
-    expect(progress.style.width).toBe('');
-
-    chrome.destroy();
-    box.remove();
-  });
-
-  it('默认仍是顶部横条，进度写 width', () => {
-    const box = document.createElement('div');
-    document.body.appendChild(box);
-    const chrome = createChrome(box, { loadingBar: true, pageNum: false, backTop: false });
-    const bar = box.querySelector('.ofdh5-loading') as HTMLElement;
-    const progress = box.querySelector('.ofdh5-progress') as HTMLElement;
-    expect(bar.classList.contains('is-left')).toBe(false);
-
-    chrome.setProgress(0.3);
-    expect(progress.style.width).toBe('30%');
-
-    chrome.destroy();
-    box.remove();
-  });
-});
-

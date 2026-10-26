@@ -133,19 +133,5 @@ test('首次加载时显示 loading 动效，加载完成后消失', async ({ pa
 });
 
 
-test('进度条可切到左侧竖条（?bar=left）', async ({ page }) => {
-  await page.route('**/fixtures/multi-page.ofd', async (route) => {
-    await new Promise((r) => setTimeout(r, 1200));
-    await route.continue();
-  });
-  await page.goto('/?bar=left');
 
-  const bar = page.locator('.ofdh5-loading');
-  await expect(bar).toHaveClass(/is-left/);
-  const box = await bar.boundingBox();
-  expect(box).not.toBeNull();
-  // 竖条：宽 4px，高覆盖整个容器
-  expect(box!.width).toBeLessThan(6);
-  expect(box!.height).toBeGreaterThan(400);
-});
 

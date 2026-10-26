@@ -27,8 +27,8 @@ export interface Ofdh5Options {
   resize?: boolean;
   lazyLoad?: boolean;
   loadingBar?: boolean;
-  /** 进度条位置：'top' 顶部横条（默认，同 pdfh5）｜'left' 左侧竖条 */
-  loadingBarPosition?: 'top' | 'left';
+  /** 进度条与动效的最短展示时间（毫秒），避免小文件一闪而过，默认 400 */
+  minLoadingDuration?: number;
   pageNum?: boolean;
   backTop?: boolean;
   tapZoomFactor?: number;
@@ -90,7 +90,7 @@ interface ResolvedOptions {
   resize: boolean;
   lazyLoad: boolean;
   loadingBar: boolean;
-  loadingBarPosition: 'top' | 'left';
+  minLoadingDuration: number;
   pageNum: boolean;
   backTop: boolean;
   tapZoomFactor: number;
@@ -118,7 +118,7 @@ function resolveOptions(raw: Ofdh5Options = {}): ResolvedOptions {
     resize: raw.resize !== false,
     lazyLoad: raw.lazyLoad !== false,
     loadingBar: raw.loadingBar !== false,
-    loadingBarPosition: raw.loadingBarPosition === 'left' ? 'left' : 'top',
+    minLoadingDuration: raw.minLoadingDuration ?? 400,
     pageNum: raw.pageNum !== false,
     backTop: raw.backTop !== false,
     tapZoomFactor: raw.tapZoomFactor ?? 2,
@@ -159,6 +159,7 @@ export class Ofdh5 {
 
   private pageCache = new Map<number, Page>();
   private annotations: Map<string, StampAnnotation[]> | null = null;
+  private loadingStartedAt = 0;
   /** 外层 PageID → 签名内嵌的印章外观页 */
   private signatureSeals: Map<string, SealPackage[]> | null = null;
   private placeholders: HTMLElement[] = [];
@@ -198,11 +199,11 @@ export class Ofdh5 {
       }
       this.chrome = createChrome(this.container, {
         loadingBar: this.opts.loadingBar,
-        loadingBarPosition: this.opts.loadingBarPosition,
         pageNum: this.opts.pageNum,
         backTop: this.opts.backTop,
       });
       this.chrome.onBackTop(() => this.scrollToTop());
+      this.loadingStartedAt = Date.now();
       this.chrome.showLoading();
       await this.load();
     } catch (error) {
@@ -248,7 +249,7 @@ export class Ofdh5 {
 
     await this.renderVisible();
     this.chrome!.setProgress(1);
-    this.chrome!.hideLoading();
+    this.finishLoading();
     this.bus.trigger('success', 'load success', performance.now() - this.startedAt);
 
     if (this.opts.goto > 0) this.goToPage(this.opts.goto);
@@ -453,6 +454,16 @@ export class Ofdh5 {
       if (this.status !== 'ready') return;
       this.chrome?.setProgress((i + 1) / Math.max(1, valid.length));
     }
+  }
+
+  /** 保证进度条/动效至少展示 minLoadingDuration，避免快速加载时闪一下就没了 */
+  private finishLoading(): void {
+    const wait = Math.max(0, this.opts.minLoadingDuration - (Date.now() - this.loadingStartedAt));
+    if (wait <= 0) {
+      this.chrome?.hideLoading();
+      return;
+    }
+    setTimeout(() => this.chrome?.hideLoading(), wait);
   }
 
   private fail(error: unknown): void {

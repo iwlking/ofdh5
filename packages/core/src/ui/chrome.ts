@@ -1,7 +1,5 @@
 export interface ChromeOptions {
   loadingBar: boolean;
-  /** 'top' 顶部横条（pdfh5 默认）｜'left' 左侧竖条 */
-  loadingBarPosition?: 'top' | 'left';
   pageNum: boolean;
   backTop: boolean;
 }
@@ -36,9 +34,6 @@ export const STYLE_TEXT = `
 .ofdh5-loading{position:absolute;width:100%;z-index:1000;background:#fff;height:4px;top:0;left:0;transition:all .3s;}
 .ofdh5-progress{background:#fff;position:absolute;top:0;left:0;width:0%;height:100%;overflow:hidden;transition:width 200ms;}
 .ofdh5-glimmer{position:absolute;top:0;left:0;height:100%;width:calc(100% + 150px);background:#7bcf34;}
-.ofdh5-loading.is-left{width:4px;height:100%;top:0;left:0;}
-.ofdh5-loading.is-left .ofdh5-progress{width:100%;height:0%;transition:height 200ms;}
-.ofdh5-loading.is-left .ofdh5-glimmer{width:100%;height:calc(100% + 150px);}
 .ofdh5-page-num{padding:0 7px;height:26px;position:absolute;top:20px;left:15px;z-index:997;border-radius:8px;transition:all .3s;}
 .ofdh5-page-num-bg,.ofdh5-page-num-text{width:100%;height:100%;line-height:26px;text-align:center;position:absolute;top:0;left:0;color:#fff;border-radius:8px;font-size:16px;}
 .ofdh5-page-num-bg{background:rgba(0,0,0,.5);}
@@ -77,7 +72,7 @@ export function createChrome(container: HTMLElement, options: ChromeOptions): Ch
   let progress: HTMLElement | null = null;
   if (options.loadingBar) {
     loading = document.createElement('div');
-    loading.className = options.loadingBarPosition === 'left' ? 'ofdh5-loading is-left' : 'ofdh5-loading';
+    loading.className = 'ofdh5-loading';
     progress = document.createElement('div');
     progress.className = 'ofdh5-progress';
     const glimmer = document.createElement('div');
@@ -137,15 +132,11 @@ export function createChrome(container: HTMLElement, options: ChromeOptions): Ch
     setProgress(ratio) {
       if (!progress) return;
       const percent = `${Math.round(Math.max(0, Math.min(1, ratio)) * 100)}%`;
-      if (options.loadingBarPosition === 'left') progress.style.height = percent;
-      else progress.style.width = percent;
+      progress.style.width = percent;
     },
     showLoading() {
       if (loading) loading.style.display = 'block';
-      if (progress) {
-        progress.style.width = '0%';
-        progress.style.height = '0%';
-      }
+      if (progress) progress.style.width = '0%';
       loadEffect.classList.add('is-active');
     },
     hideLoading() {
