@@ -31,6 +31,8 @@
     "ofd.js",
     "ofd-viewer",
     "ofd-preview",
+    "电子发票",
+    "版式文档",
     "canvas",
     "h5",
     "mobile",
@@ -38,7 +40,10 @@
     "document"
   ],
   "license": "MIT",
-  "author": "ofdh5 contributors",
+  "author": {
+    "name": "iwlking",
+    "url": "https://github.com/iwlking"
+  },
   "engines": {
     "node": ">=16"
   },
@@ -46,5 +51,14 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iwlking/ofdh5.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/iwlking/ofdh5#readme",
+  "bugs": {
+    "url": "https://github.com/iwlking/ofdh5/issues"
   }
 }

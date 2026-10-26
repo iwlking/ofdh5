@@ -1,5 +1,8 @@
 # ofdh5
 
+[![npm](https://img.shields.io/npm/v/ofdh5.svg)](https://www.npmjs.com/package/ofdh5)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
 OFD（GB/T 33190-2016）移动端预览内核：纯前端解析 + Canvas 渲染，API 与 pdfh5 对齐。
 
 - 零框架依赖，运行时只依赖 `fflate`

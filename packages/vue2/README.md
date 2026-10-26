@@ -1,5 +1,8 @@
 # ofdh5-vue2
 
+[![npm](https://img.shields.io/npm/v/ofdh5-vue2.svg)](https://www.npmjs.com/package/ofdh5-vue2)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
 `ofdh5` 的 Vue 2 组件封装。
 
 ```bash

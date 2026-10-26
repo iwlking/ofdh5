@@ -1,5 +1,9 @@
 # ofdh5
 
+[![npm](https://img.shields.io/npm/v/ofdh5.svg)](https://www.npmjs.com/package/ofdh5)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![GitHub](https://img.shields.io/badge/GitHub-iwlking%2Fofdh5-181717?logo=github)](https://github.com/iwlking/ofdh5)
+
 移动端 OFD 预览库，API 对齐 [pdfh5](https://github.com/gjTool/pdfh5)，可直接替换原有 PDF 预览接入方式。
 
 - 纯 canvas 渲染，内核零框架依赖

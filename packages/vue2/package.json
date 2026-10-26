@@ -31,14 +31,18 @@
   "description": "Vue 2 component wrapper for ofdh5 (OFD document preview)",
   "keywords": [
     "ofd",
+    "ofd-viewer",
+    "电子发票",
     "vue2",
     "vue",
-    "ofd-viewer",
     "pdfh5",
     "component"
   ],
   "license": "MIT",
-  "author": "ofdh5 contributors",
+  "author": {
+    "name": "iwlking",
+    "url": "https://github.com/iwlking"
+  },
   "engines": {
     "node": ">=16"
   },
@@ -46,5 +50,14 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iwlking/ofdh5.git",
+    "directory": "packages/vue2"
+  },
+  "homepage": "https://github.com/iwlking/ofdh5#readme",
+  "bugs": {
+    "url": "https://github.com/iwlking/ofdh5/issues"
   }
 }

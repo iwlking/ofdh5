@@ -15,5 +15,32 @@
   "devDependencies": {
     "fflate": "^0.8.3",
     "typescript": "^5.6.3"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iwlking/ofdh5.git"
+  },
+  "homepage": "https://github.com/iwlking/ofdh5#readme",
+  "bugs": {
+    "url": "https://github.com/iwlking/ofdh5/issues"
+  },
+  "author": {
+    "name": "iwlking",
+    "url": "https://github.com/iwlking"
+  },
+  "license": "MIT",
+  "description": "OFD（GB/T 33190-2016）文档预览库：纯前端解析 + Canvas 渲染，API 与 pdfh5 对齐，适配移动端手势与 Vue 2",
+  "keywords": [
+    "ofd",
+    "ofd.js",
+    "ofd-viewer",
+    "ofd-preview",
+    "电子发票",
+    "版式文档",
+    "canvas",
+    "h5",
+    "mobile",
+    "pdfh5",
+    "vue2"
+  ]
 }
