@@ -71,6 +71,14 @@ function joinUrl(base: string, name: string): string {
   return `${clean}/${encodeURIComponent(name)}`;
 }
 
+/** fontMap 里可以直接写绝对地址（CDN / OSS），此时不再拼 fontUrl */
+export function resolveFontUrl(name: string, base?: string): string | null {
+  if (/^(https?:)?\/\//i.test(name)) return name;
+  if (name.startsWith('/')) return name;
+  if (!base) return null;
+  return joinUrl(base, name);
+}
+
 export function createFontRegistry(fallback = 'sans-serif', options: FontRegistryOptions = {}): FontRegistry {
   const families = new Map<string, string>();
   const custom = options.fontMap;
@@ -109,11 +117,12 @@ export function createFontRegistry(fallback = 'sans-serif', options: FontRegistr
         }
       }
 
-      if (baseUrl && name) {
+      if (name) {
         const fileName = remoteNameFor(name);
-        if (fileName) {
+        const url = fileName ? resolveFontUrl(fileName, baseUrl) : null;
+        if (url) {
           try {
-            const response = await fetch(joinUrl(baseUrl, fileName));
+            const response = await fetch(url);
             if (response.ok) {
               const buffer = await response.arrayBuffer();
               if (await loadFace(family, buffer)) {

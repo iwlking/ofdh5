@@ -135,3 +135,38 @@ describe('动态字体加载（类似 pdfh5 的 standardFontDataUrl）', () => {
     expect(calls).toHaveLength(0);
   });
 });
+
+describe('fontMap 支持绝对地址', () => {
+  it('映射到 CDN 绝对地址时不需要 fontUrl', async () => {
+    const calls: string[] = [];
+    (globalThis as any).fetch = async (url: string) => {
+      calls.push(url);
+      return { ok: true, arrayBuffer: async () => new ArrayBuffer(8) } as unknown as Response;
+    };
+    (globalThis as any).FontFace = class {
+      constructor(public name: string, public src: unknown) {}
+      load() { return Promise.resolve(this); }
+    };
+    (document as any).fonts = { add: () => {} };
+
+    const registry = createFontRegistry('sans-serif', {
+      fontMap: { 楷体: 'https://cdn.example.com/fonts/kai.woff2' },
+    });
+    const ok = await registry.register('7', null, '楷体');
+    expect(ok).toBe(true);
+    expect(calls[0]).toBe('https://cdn.example.com/fonts/kai.woff2');
+  });
+
+  it('没有 fontUrl 且映射值不是绝对地址时不发请求', async () => {
+    const calls: string[] = [];
+    (globalThis as any).fetch = async (url: string) => {
+      calls.push(url);
+      return { ok: false, arrayBuffer: async () => new ArrayBuffer(0) } as unknown as Response;
+    };
+    const registry = createFontRegistry('sans-serif', { fontMap: { 楷体: 'kai.ttf' } });
+    const ok = await registry.register('8', null, '楷体');
+    expect(ok).toBe(false);
+    expect(calls).toHaveLength(0);
+  });
+});
+
