@@ -45,6 +45,6 @@
   "sideEffects": false,
   "publishConfig": {
     "access": "public",
-    "registry": "https://packages.aliyun.com/6247af2154d036291ae14403/npm/npm-registry/"
+    "registry": "https://registry.npmjs.org/"
   }
 }
