@@ -19,6 +19,7 @@ export default {
     scrollEnable: { type: Boolean, default: undefined },
     lazyLoad: { type: Boolean, default: undefined },
     loadingBar: { type: Boolean, default: undefined },
+    loadingBarPosition: { type: String, default: undefined },
     pageNum: { type: Boolean, default: undefined },
     backTop: { type: Boolean, default: undefined },
     maxZoom: { type: Number, default: undefined },

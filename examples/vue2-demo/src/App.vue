@@ -11,6 +11,7 @@
       <ofd-viewer
         ref="viewer"
         :url="url"
+        :loading-bar-position="bar"
         @ready="onReady"
         @page-change="onPageChange"
         @error="onError"
@@ -25,8 +26,10 @@ import OfdViewer from 'ofdh5-vue2/src/OfdViewer.vue';
 export default {
   components: { OfdViewer },
   data() {
-    const requested = new URLSearchParams(window.location.search).get('file');
-    return { url: requested || '/fixtures/multi-page.ofd', page: 1, total: 0 };
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get('file');
+    const bar = params.get('bar') === 'left' ? 'left' : 'top';
+    return { url: requested || '/fixtures/multi-page.ofd', bar, page: 1, total: 0 };
   },
   methods: {
     onReady() {

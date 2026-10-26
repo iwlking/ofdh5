@@ -27,6 +27,8 @@ export interface Ofdh5Options {
   resize?: boolean;
   lazyLoad?: boolean;
   loadingBar?: boolean;
+  /** 进度条位置：'top' 顶部横条（默认，同 pdfh5）｜'left' 左侧竖条 */
+  loadingBarPosition?: 'top' | 'left';
   pageNum?: boolean;
   backTop?: boolean;
   tapZoomFactor?: number;
@@ -88,6 +90,7 @@ interface ResolvedOptions {
   resize: boolean;
   lazyLoad: boolean;
   loadingBar: boolean;
+  loadingBarPosition: 'top' | 'left';
   pageNum: boolean;
   backTop: boolean;
   tapZoomFactor: number;
@@ -115,6 +118,7 @@ function resolveOptions(raw: Ofdh5Options = {}): ResolvedOptions {
     resize: raw.resize !== false,
     lazyLoad: raw.lazyLoad !== false,
     loadingBar: raw.loadingBar !== false,
+    loadingBarPosition: raw.loadingBarPosition === 'left' ? 'left' : 'top',
     pageNum: raw.pageNum !== false,
     backTop: raw.backTop !== false,
     tapZoomFactor: raw.tapZoomFactor ?? 2,
@@ -194,6 +198,7 @@ export class Ofdh5 {
       }
       this.chrome = createChrome(this.container, {
         loadingBar: this.opts.loadingBar,
+        loadingBarPosition: this.opts.loadingBarPosition,
         pageNum: this.opts.pageNum,
         backTop: this.opts.backTop,
       });
