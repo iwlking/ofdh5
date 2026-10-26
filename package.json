@@ -1,7 +1,7 @@
 {
   "name": "ofdh5-monorepo",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "scripts": {
     "build": "pnpm --filter ofdh5 build && pnpm --filter ofdh5-vue2 build",
     "test": "pnpm --filter ofdh5 test",
