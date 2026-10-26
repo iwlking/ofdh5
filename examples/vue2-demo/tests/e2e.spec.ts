@@ -115,3 +115,20 @@ test('点击放大以容器中心为锚点，页面不往一侧跑', async ({ pa
   expect(Math.abs(afterCenter - beforeCenter)).toBeLessThan(12);
 });
 
+
+test('首次加载时显示 loading 动效，加载完成后消失', async ({ page }) => {
+  await page.route('**/fixtures/multi-page.ofd', async (route) => {
+    await new Promise((r) => setTimeout(r, 1500));
+    await route.continue();
+  });
+
+  await page.goto('/');
+
+  const effect = page.locator('.ofdh5-load-effect');
+  await expect(effect).toHaveCount(1);
+  await expect(effect).toHaveCSS('opacity', '1');
+
+  await expect(page.locator('canvas').first()).toBeVisible({ timeout: 20000 });
+  await expect(effect).toHaveCSS('opacity', '0');
+});
+

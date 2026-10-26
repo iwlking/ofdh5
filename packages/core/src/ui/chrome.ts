@@ -10,6 +10,8 @@ export interface Chrome {
   scroller: HTMLElement;
   setPage(current: number, total: number): void;
   setProgress(ratio: number): void;
+  /** 显示加载动效（首屏/切换文件时） */
+  showLoading(): void;
   hideLoading(): void;
   setBackTopVisible(visible: boolean): void;
   onBackTop(handler: () => void): void;
@@ -25,6 +27,10 @@ export const STYLE_TEXT = `
 .ofdh5-page{margin:0 auto 8px auto;position:relative;overflow:visible;box-shadow:darkgrey 0px 1px 3px 0px;background-color:#fff;box-sizing:border-box;}
 .ofdh5-page canvas{width:100%;height:100%;position:relative;z-index:100;user-select:none;pointer-events:none;display:block;}
 .ofdh5-page-error{display:flex;align-items:center;justify-content:center;height:100%;color:#999;font-size:16px;background:#fff;}
+.ofdh5-load-effect{position:absolute;top:50%;left:50%;width:44px;height:44px;margin:-22px 0 0 -22px;z-index:1002;opacity:0;pointer-events:none;transition:opacity .2s;}
+.ofdh5-load-effect.is-active{opacity:1;}
+.ofdh5-load-effect::after{content:'';display:block;width:100%;height:100%;box-sizing:border-box;border-radius:50%;border:3px solid rgba(0,0,0,.12);border-top-color:#7bcf34;animation:ofdh5-spin .8s linear infinite;}
+@keyframes ofdh5-spin{to{transform:rotate(360deg)}}
 .ofdh5-loading{position:absolute;width:100%;z-index:1000;background:#fff;height:4px;top:0;left:0;transition:all .3s;}
 .ofdh5-progress{background:#fff;position:absolute;top:0;left:0;width:0%;height:100%;overflow:hidden;transition:width 200ms;}
 .ofdh5-glimmer{position:absolute;top:0;left:0;height:100%;width:calc(100% + 150px);background:#7bcf34;}
@@ -76,6 +82,10 @@ export function createChrome(container: HTMLElement, options: ChromeOptions): Ch
     container.appendChild(loading);
   }
 
+  const loadEffect = document.createElement('div');
+  loadEffect.className = 'ofdh5-load-effect';
+  container.appendChild(loadEffect);
+
   let pageNum: HTMLElement | null = null;
   let nowEl: HTMLElement | null = null;
   let totalEl: HTMLElement | null = null;
@@ -122,8 +132,14 @@ export function createChrome(container: HTMLElement, options: ChromeOptions): Ch
     setProgress(ratio) {
       if (progress) progress.style.width = `${Math.round(Math.max(0, Math.min(1, ratio)) * 100)}%`;
     },
+    showLoading() {
+      if (loading) loading.style.display = 'block';
+      if (progress) progress.style.width = '0%';
+      loadEffect.classList.add('is-active');
+    },
     hideLoading() {
       if (loading) loading.style.display = 'none';
+      loadEffect.classList.remove('is-active');
     },
     setBackTopVisible(visible) {
       if (!backTop) return;

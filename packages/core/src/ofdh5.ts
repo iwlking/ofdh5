@@ -198,6 +198,7 @@ export class Ofdh5 {
         backTop: this.opts.backTop,
       });
       this.chrome.onBackTop(() => this.scrollToTop());
+      this.chrome.showLoading();
       await this.load();
     } catch (error) {
       this.fail(error);
@@ -450,6 +451,7 @@ export class Ofdh5 {
   }
 
   private fail(error: unknown): void {
+    this.chrome?.hideLoading();
     const err = toOfdError(error, 'E_RENDER');
     this.status = 'error';
     this.lastError = { code: err.code, message: err.message };

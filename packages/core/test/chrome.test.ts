@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, beforeEach, afterEach, it, expect } from 'vitest';
 import { createChrome, STYLE_TEXT } from '../src/ui/chrome';
 
 describe('createChrome', () => {
@@ -66,4 +66,28 @@ describe('createChrome', () => {
     expect(container.innerHTML).toBe('');
     expect(container.classList.contains('ofdh5')).toBe(false);
   });
+});
+
+describe('加载动效', () => {
+  let box: HTMLElement;
+  beforeEach(() => {
+    box = document.createElement('div');
+    document.body.appendChild(box);
+  });
+  afterEach(() => box.remove());
+
+  it('加载动效默认隐藏，showLoading/hideLoading 切换', () => {
+    const chrome = createChrome(box, { loadingBar: true, pageNum: true, backTop: true });
+    const effect = box.querySelector('.ofdh5-load-effect') as HTMLElement;
+    expect(effect).not.toBeNull();
+    expect(effect.classList.contains('is-active')).toBe(false);
+
+    chrome.showLoading();
+    expect(effect.classList.contains('is-active')).toBe(true);
+
+    chrome.hideLoading();
+    expect(effect.classList.contains('is-active')).toBe(false);
+    chrome.destroy();
+  });
+
 });

@@ -1,6 +1,6 @@
 {
   "name": "ofdh5",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "OFD (GB/T 33190-2016) preview for mobile web: pure-frontend canvas renderer with pdfh5-compatible API",
   "main": "./dist/ofdh5.umd.js",
   "module": "./dist/ofdh5.esm.js",
