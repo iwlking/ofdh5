@@ -10,8 +10,7 @@
     "test:all": "pnpm test && pnpm test:vue2 && pnpm test:e2e",
     "fixtures": "node scripts/make-fixtures.mjs",
     "release": "pnpm --filter ofdh5 publish --no-git-checks --registry=https://registry.npmjs.org/",
-    "release:dry": "pnpm --filter ofdh5 publish --dry-run --no-git-checks --registry=https://registry.npmjs.org/",
-    "release:vue2": "pnpm --filter ofdh5-vue2 publish --no-git-checks --registry=https://registry.npmjs.org/"
+    "release:dry": "pnpm --filter ofdh5 publish --dry-run --no-git-checks --registry=https://registry.npmjs.org/"
   },
   "devDependencies": {
     "fflate": "^0.8.3",
