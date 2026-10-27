@@ -23,6 +23,7 @@ export default {
     backTop: { type: Boolean, default: undefined },
     maxZoom: { type: Number, default: undefined },
     minZoom: { type: Number, default: undefined },
+    textLayer: { type: Boolean, default: undefined },
   },
   data() {
     return { instance: null, lastPage: 1 };
@@ -60,6 +61,7 @@ export default {
         }
       });
       this.instance.on('backTop', () => this.$emit('back-top'));
+      this.instance.on('search', (keyword, matches) => this.$emit('search', keyword, matches));
     },
     destroy() {
       if (this.instance) {
@@ -73,6 +75,10 @@ export default {
     zoomIn() { this.instance && this.instance.zoomIn(); },
     zoomOut() { this.instance && this.instance.zoomOut(); },
     setScale(s) { this.instance && this.instance.setScale(s); },
+    searchText(keyword) { return this.instance ? this.instance.searchText(keyword) : []; },
+    findNext() { return this.instance ? this.instance.findNext() : null; },
+    findPrevious() { return this.instance ? this.instance.findPrevious() : null; },
+    clearSearch() { this.instance && this.instance.clearSearch(); },
     getStatus() { return this.instance ? this.instance.getStatus() : null; },
   },
 };

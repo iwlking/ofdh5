@@ -10,6 +10,10 @@
 - 输入支持 URL、`ArrayBuffer`、`Uint8Array`、`Blob`
 - 懒加载、双指缩放、双击缩放、滚动页码、回到顶部
 - 内嵌字体注册（`FontFace`），失败自动降级
+
+- 透明文本层：文字可划选复制，支持全文搜索与命中高亮
+
+- 多 `DocBody` 文档包：跨文档拼接成连续页码
 - 提供 Vue2 组件 `<ofd-viewer>`
 
 ## 运行环境
@@ -246,6 +250,12 @@ this.$refs.viewer.destroy();
 | `fontFallback` | string | `sans-serif` | 无内嵌字体时的字体栈 |
 | `timeout` | number | `30000` | 下载超时（ms） |
 
+| `fontUrl` | string | — | 字体文件基地址，无内嵌字体时按需 fetch |
+
+| `fontMap` | Record<string, string> | — | 字体名映射，如 `{ "楷体": "simkai.ttf" }` |
+
+| `textLayer` | boolean | `true` | 透明文本层：开启后文字可划选复制（搜索高亮也依赖它定位） |
+
 与 pdfh5 的对应关系：
 
 **保留（同名同义）**：`data`、`goto`、`scale`、`scrollEnable`、`zoomEnable`、`resize`、`loadingBar`、`pageNum`、`backTop`、`tapZoomFactor`、`zoomOutFactor`、`animationDuration`、`maxZoom`、`minZoom`、`dampingFactor`。
@@ -256,9 +266,9 @@ this.$refs.viewer.destroy();
 
 **语义调整**：`lazyLoad` 默认值由 `false` 改为 `true`。
 
-**新增**：`maxCachedPages`、`maxDpr`、`pageGap`、`backgroundColor`、`fontFallback`、`timeout`。
+**新增**：`maxCachedPages`、`maxDpr`、`pageGap`、`backgroundColor`、`fontFallback`、`fontUrl`、`fontMap`、`timeout`、`textLayer`。
 
-**删除**：`password`、`cMapUrl`、`standardFontDataUrl`、`iccUrl`、`wasmUrl`、`workerSrc`、`textLayer`、`progressiveLoading`、`chunkSize`、`maxMemoryPages`、`maxImageSize`、`canvasMaxAreaInBytes`、`annotationEditorMode`、`editorParams`、`sandboxEnabled`、`sandboxOptions`、`enableHWA`。
+**删除**：`password`、`cMapUrl`、`standardFontDataUrl`、`iccUrl`、`wasmUrl`、`workerSrc`、`progressiveLoading`、`chunkSize`、`maxMemoryPages`、`maxImageSize`、`canvasMaxAreaInBytes`、`annotationEditorMode`、`editorParams`、`sandboxEnabled`、`sandboxOptions`、`enableHWA`。
 
 ### methods
 
@@ -271,6 +281,14 @@ this.$refs.viewer.destroy();
 | `getPageSize(n)` | 第 n 页尺寸 `{ width, height }`（mm，1 起）；该页未解析时返回文档默认页尺寸 |
 | `getStatus()` | 运行状态快照，见下 |
 | `getCacheStats()` | `{ rendered, cachedPages }`，当前均为已渲染页数 |
+
+| `searchText(keyword, options?)` | 全文搜索，返回全部命中并跳到第一个；`options.caseSensitive` 默认 `false` |
+
+| `findNext()` / `findPrevious()` | 在命中之间前后跳转（循环），返回当前命中 `SearchMatch`，无命中返回 `null` |
+
+| `clearSearch()` | 清除搜索状态与高亮 |
+
+| `getSearchState()` | `{ keyword, matches, current }`，`current` 为当前命中下标，-1 表示无命中 |
 | `goToPage(n)` | 跳到第 n 页（1 起，越界自动夹取） |
 | `nextPage()` / `prevPage()` | 上/下一页 |
 | `scrollToTop()` | 回到顶部并触发 `backTop` |
@@ -313,6 +331,8 @@ this.$refs.viewer.destroy();
 | `complete` | `(status: 'success' \| 'error', msg, time)` | 加载流程结束（无论成败） |
 | `pageError` | `(pageNum, error: OfdError)` | 单页渲染失败，其他页不受影响 |
 | `fontFallback` | `(pageNum, fontName)` | 内嵌字体注册失败，已降级 |
+
+| `search` | `(keyword, matches: SearchMatch[])` | `searchText()` 完成，无论有没有命中 |
 | `zoom` | `(scale)` | 缩放比例变化 |
 | `zoomStart` | — | 双指缩放开始 |
 | `zoomEnd` | `(scale)` | 双指缩放结束 |
@@ -325,7 +345,57 @@ this.$refs.viewer.destroy();
 
 时序：`init` → `ready` → 逐页 `render` → `success` → `complete`。
 
+## 文本层与搜索
+
+
+
+渲染完成的页面会叠一层透明文本层（`.ofdh5-text-layer`），位置与 canvas 上的字形逐字对齐，
+
+因此可以直接用浏览器原生的划选、复制能力，当前命中会以橙色高亮标出。不需要时传 `textLayer: false` 关闭。
+
+
+
+```js
+
+const matches = ofd.searchText('发票号码');
+
+// [{ index: 0, pageNum: 1, text: '发票号码', rect: { x, y, width, height } }, ...]
+
+
+
+ofd.findNext();      // 下一个命中，自动滚动到对应页
+
+ofd.findPrevious();  // 上一个命中，到头后循环
+
+ofd.getSearchState(); // { keyword, matches, current }
+
+ofd.clearSearch();   // 清除高亮
+
+```
+
+
+
+`rect` 使用页面坐标系（mm，原点在页面左上角），换算成 CSS 像素需乘以 `容器宽度 / 页宽`。
+
+搜索默认忽略大小写，`{ caseSensitive: true }` 可开启大小写敏感；只会解析已加载的文档，命中按页码升序编号。
+
+
+
+## 多文档包
+
+
+
+`OFD.xml` 里有多个 `DocBody` / `DocRoot` 时，所有文档的页会按 DocRoot 顺序拼接成一份连续的页码，
+
+`getPageCount()` 返回总页数、`goToPage()` 使用拼接后的页码。每个文档各自持有资源表、字体与图片缓存，
+
+因此不同文档里重复的资源 ID 不会互相覆盖；某个文档解析失败只会跳过它，不影响其余文档。
+
+
+
 ## 错误处理
+
+
 
 失败时不会抛到 `window.onerror`，而是走事件 + 占位提示：
 
@@ -358,18 +428,18 @@ this.$refs.viewer.destroy();
 
 **删除的 options**：见上文 options 小节末尾列表。
 
-**删除的 methods**：`searchText`、`clearSearch`、`findNext`、`findPrevious`、`printPDF`、`setAnnotationEditorMode` 及 `annotation*` 系列、`setProgressiveLoading`、`getProgressiveLoadingStatus`、`getMemoryUsage`。
+**删除的 methods**：`printPDF`、`setAnnotationEditorMode` 及 `annotation*` 系列、`setProgressiveLoading`、`getProgressiveLoadingStatus`、`getMemoryUsage`。
 
 **删除的 events**：`pageLoaded`、`pageCleaned`、`annotationAdded`、`annotationRemoved`、`annotationUpdated`、`annotationModeChanged`、`annotationSelected`。
 
-**新增的 methods**：`getPageCount()`、`getPageSize(n)`、`download(filename)`、`getCacheStats()`。
+**新增的 methods**：`getPageCount()`、`getPageSize(n)`、`download(filename)`、`getCacheStats()`、`searchText(keyword, options?)`、`findNext()`、`findPrevious()`、`clearSearch()`、`getSearchState()`。
 
 **新增的 events**：`pageError`、`fontFallback`。
 
 **行为差异**：
 
 - `lazyLoad` 默认 `true`。
-- 无文本层，文本不可选中、不可搜索。
+- 无文本层时文本不可选中（`textLayer: false`）；默认开启透明文本层。
 - 不支持加密 OFD，遇到直接报 `E_ENCRYPTED`。
 - 不支持打印、批注等 PDF 专有能力。
 
@@ -418,14 +488,13 @@ python -m http.server 5190
 
 ## 已知限制
 
-- 只解析第一个 `DocBody` / `DocRoot`，多文档包只显示第一个文档。
 - 不支持加密 OFD（存在 `Encrypt.xml` 时直接报错）。
 - `maxCachedPages` 目前只保留选项，页面 canvas 尚未按 LRU 回收；`getCacheStats()` 的 `cachedPages` 与 `rendered` 相同。
 - `setZoomConstraints()` 只更新内部约束值，初始化时创建的缩放实例不受影响；请通过 `minZoom` / `maxZoom` 选项设置。
 - 懒加载只渲染当前页及前后各 1 页。
 - PNG/JPEG/GIF/BMP 交给浏览器解码，实际支持范围取决于浏览器嗅探结果。
 - JBIG2（OFD 的 GBIG2）由内置解码器处理：覆盖页信息段与通用区域段（算术编码模板 0-3、典型预测、MMR 暂不支持）；符号字典、文本区域、半色调区域等暂不支持，遇到时只跳过该图，不影响整页渲染。
-- 无文本层，文本不可选中，也不支持搜索。
+- 搜索只在单个文本对象内匹配，跨对象（如被拆成多个 `TextObject` 的一行）不会合并命中。
 
 - 签章：只渲染 `<ofd:Annot Type="Stamp">` 且外观带 `ResourceID` 的印章；`Subtype="SignatureInFile"` 这类把印章放在签名值里的文件无法在前端还原，需要服务端出图。
 - 字体：优先用内嵌 `FontFile`；没有内嵌字体时按替换表（宋体/楷体/黑体/仿宋/微软雅黑 等）使用本机字体，可用 `fontMap` 选项映射到自定义 webfont。

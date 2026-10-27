@@ -1,6 +1,7 @@
 import type { ImageItem, Page, PageItem, PathItem, RgbColor, TextItem } from '../types';
 import type { Viewport } from './viewport';
 import { toCssColor } from '../parser/color';
+import { layoutGlyphs } from './glyph-layout';
 
 export interface PaintOptions {
   background: string;
@@ -40,21 +41,9 @@ function drawText(ctx: CanvasRenderingContext2D, item: TextItem, opts: PaintOpti
     ctx.lineWidth = item.size * 0.02;
   }
 
-  // 坐标已在解析层累加成绝对值；OFD 的 DeltaX 只给出 n-1 个步进，
-  // 最后一个字没有步进，必须接在上一个字后面，否则会跳回行首和第一个字重叠。
-  let cursor = item.glyphs[0]?.x ?? 0;
-  for (let i = 0; i < item.glyphs.length; i++) {
-    const glyph = item.glyphs[i];
-    const char = item.text[i];
-    const positioned = i === 0 || glyph.deltaX != null || glyph.deltaY != null;
-    const x = positioned ? glyph.x : cursor;
-    if (char) {
-      ctx.fillText(char, x, glyph.y);
-      if (item.stroke) ctx.strokeText(char, x, glyph.y);
-    }
-    if (glyph.deltaX != null) cursor = x + glyph.deltaX;
-    else if (glyph.deltaY == null) cursor = x + (char ? ctx.measureText(char).width : 0);
-    else cursor = x;
+  for (const glyph of layoutGlyphs(item, (text) => ctx.measureText(text).width)) {
+    ctx.fillText(glyph.char, glyph.x, glyph.y);
+    if (item.stroke) ctx.strokeText(glyph.char, glyph.x, glyph.y);
   }
   ctx.restore();
 }

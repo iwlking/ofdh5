@@ -10,8 +10,10 @@ import { bindResourceSource } from './parser/resources';
 import { createResources, type ImageItem, type Page, type PageResources } from './types';
 import { createFontRegistry, type FontRegistry } from './render/fonts';
 import { createImageCache, isRasterImage, type ImageCache } from './render/images';
-import { createViewport } from './render/viewport';
+import { createViewport, type Viewport } from './render/viewport';
 import { paintPage } from './render/painter';
+import { buildTextLayer } from './ui/text-layer';
+import { searchDocument, type SearchMatch, type SearchOptions } from './search';
 import { createChrome, type Chrome } from './ui/chrome';
 import { PinchZoom } from './interact/pinch-zoom';
 import { ScrollWatcher, pageAtOffset } from './interact/scroller';
@@ -47,6 +49,8 @@ export interface Ofdh5Options {
   /** 字体名映射：{ "楷体": "simkai.ttf" } 或 { "楷体": "MyKai" } */
   fontMap?: Record<string, string>;
   timeout?: number;
+  /** 透明文本层：开启后文字可划选复制，搜索命中也依赖它定位，默认 true */
+  textLayer?: boolean;
 }
 
 export type Ofdh5Events = {
@@ -65,6 +69,7 @@ export type Ofdh5Events = {
   backTop: () => void;
   zoomEnabled: (flag: boolean) => void;
   scrollEnabled: (flag: boolean) => void;
+  search: (keyword: string, matches: SearchMatch[]) => void;
   show: () => void;
   hide: () => void;
   destroy: () => void;
@@ -106,6 +111,33 @@ interface ResolvedOptions {
   fontUrl?: string;
   fontMap?: Record<string, string>;
   timeout: number;
+  textLayer: boolean;
+}
+
+/** 跨文档扁平化后的一页：记录它属于哪个 DocBody */
+interface FlatPage {
+  doc: number;
+  id: string;
+  loc: string;
+}
+
+/** 一份 DocBody 的上下文；资源 ID 只在文档内唯一，因此字体/图片缓存按文档隔离 */
+interface OfdDocument {
+  docRoot: string;
+  meta: DocumentMeta;
+  resources: PageResources;
+  fonts: FontRegistry;
+  images: ImageCache;
+  annotations: Map<string, StampAnnotation[]> | null;
+  /** 外层 PageID → 签名内嵌的印章外观页 */
+  seals: Map<string, SealPackage[]> | null;
+}
+
+interface SearchState {
+  keyword: string;
+  matches: SearchMatch[];
+  /** 当前命中在 matches 中的下标，-1 表示没有命中 */
+  current: number;
 }
 
 function resolveOptions(raw: Ofdh5Options = {}): ResolvedOptions {
@@ -136,6 +168,7 @@ function resolveOptions(raw: Ofdh5Options = {}): ResolvedOptions {
     fontUrl: raw.fontUrl,
     fontMap: raw.fontMap,
     timeout: raw.timeout ?? 30000,
+    textLayer: raw.textLayer !== false,
   };
 }
 
@@ -154,16 +187,14 @@ export class Ofdh5 {
 
   private zip: OfdZip | null = null;
   private buffer: Uint8Array | null = null;
-  private meta: DocumentMeta | null = null;
-  private resources: PageResources = createResources();
-  private fonts: FontRegistry;
-  private images: ImageCache | null = null;
+  /** 一个 DocBody 一份上下文，按 OFD.xml 里的 DocRoot 顺序 */
+  private docs: OfdDocument[] = [];
+  /** 跨文档的扁平页列表，下标即「页码 - 1」 */
+  private flatPages: FlatPage[] = [];
 
   private pageCache = new Map<number, Page>();
-  private annotations: Map<string, StampAnnotation[]> | null = null;
   private loadingStartedAt = 0;
-  /** 外层 PageID → 签名内嵌的印章外观页 */
-  private signatureSeals: Map<string, SealPackage[]> | null = null;
+  private searchState: SearchState | null = null;
   private placeholders: HTMLElement[] = [];
   private rendered = new Set<number>();
   private rendering = new Set<number>();
@@ -182,10 +213,6 @@ export class Ofdh5 {
     this.container = container;
     this.opts = resolveOptions(options);
     this.bus = new EventBus<Ofdh5Events>(this);
-    this.fonts = createFontRegistry(this.opts.fontFallback, {
-      fontMap: this.opts.fontMap,
-      fontBaseUrl: this.opts.fontUrl,
-    });
     this.loaded = new Promise<void>((resolve) => {
       this.resolveLoaded = resolve;
     });
@@ -226,22 +253,25 @@ export class Ofdh5 {
     this.zip = zip;
 
     const pkg = parseOfdPackage(zip.readText('OFD.xml'));
-    const docRoot = pkg.docRoots[0];
-    const documentXml = zip.readText(docRoot);
-    this.meta = parseDocumentMeta(documentXml, docRoot);
-    try {
-      this.annotations = parseAnnotations(zip, docRoot, documentXml);
-    } catch (error) {
-      console.warn('[ofdh5] 注释解析失败，跳过签章:', error);
-      this.annotations = null;
+    // 多 DocBody 包：逐个解析，任一文档损坏只跳过它自己
+    for (const docRoot of [...new Set(pkg.docRoots)]) {
+      try {
+        this.docs.push(this.openDocument(zip, docRoot));
+      } catch (error) {
+        console.warn('[ofdh5] 文档解析失败，已跳过:', docRoot, error);
+      }
     }
-    // parseSignatureSeals 内部逐个签名 try/catch，异常结构只会被跳过
-    this.signatureSeals = parseSignatureSeals(zip, docRoot, documentXml);
-    bindResourceSource(this.resources, zip, docRoot);
-    this.totalNum = this.meta.pages.length;
-    this.status = 'ready';
+    if (this.docs.length === 0) {
+      throw new OfdError('E_NO_ENTRY', 'OFD.xml 中的 DocRoot 均无法解析');
+    }
 
-    this.images = createImageCache({ read: (path) => zip.read(path) });
+    this.docs.forEach((doc, docIndex) => {
+      for (const page of doc.meta.pages) {
+        this.flatPages.push({ doc: docIndex, id: page.id, loc: page.loc });
+      }
+    });
+    this.totalNum = this.flatPages.length;
+    this.status = 'ready';
 
     this.buildPlaceholders();
     this.attachInteractions();
@@ -255,6 +285,34 @@ export class Ofdh5 {
     this.bus.trigger('success', 'load success', performance.now() - this.startedAt);
 
     if (this.opts.goto > 0) this.goToPage(this.opts.goto);
+  }
+
+  /** 解析一个 DocBody：Document.xml、资源、签章各自独立 */
+  private openDocument(zip: OfdZip, docRoot: string): OfdDocument {
+    const documentXml = zip.readText(docRoot);
+    const meta = parseDocumentMeta(documentXml, docRoot);
+
+    let annotations: Map<string, StampAnnotation[]> | null = null;
+    try {
+      annotations = parseAnnotations(zip, docRoot, documentXml);
+    } catch (error) {
+      console.warn('[ofdh5] 注释解析失败，跳过签章:', error);
+    }
+    // parseSignatureSeals 内部逐个签名 try/catch，异常结构只会被跳过
+    const seals = parseSignatureSeals(zip, docRoot, documentXml);
+
+    return {
+      docRoot,
+      meta,
+      resources: bindResourceSource(createResources(), zip, docRoot),
+      fonts: createFontRegistry(this.opts.fontFallback, {
+        fontMap: this.opts.fontMap,
+        fontBaseUrl: this.opts.fontUrl,
+      }),
+      images: createImageCache({ read: (path) => zip.read(path) }),
+      annotations,
+      seals,
+    };
   }
 
   private async readSource(): Promise<Uint8Array> {
@@ -282,9 +340,10 @@ export class Ofdh5 {
     viewer.innerHTML = '';
     this.placeholders = [];
     const width = this.contentWidth();
-    const ratio = (this.meta?.height ?? 297) / (this.meta?.width ?? 210);
 
     for (let i = 0; i < this.totalNum; i++) {
+      const size = this.fallbackSize(i);
+      const ratio = size.height / size.width;
       const page = document.createElement('div');
       page.className = 'ofdh5-page';
       page.dataset.index = String(i);
@@ -332,14 +391,26 @@ export class Ofdh5 {
     }
   }
 
+  private documentOf(index: number): OfdDocument | null {
+    const flat = this.flatPages[index];
+    return flat ? this.docs[flat.doc] ?? null : null;
+  }
+
+  /** 文档声明的页尺寸，页面自身 PhysicalBox 缺失时兜底 */
+  private fallbackSize(index: number): { width: number; height: number } {
+    const meta = this.documentOf(index)?.meta;
+    return { width: meta?.width ?? 210, height: meta?.height ?? 297 };
+  }
+
   /** 注册当前已收集到但尚未注册的内嵌字体；每解析一页都调用一次 */
-  private async ensureFonts(pageNum: number): Promise<void> {
-    if (!this.zip) return;
-    for (const [id, font] of this.resources.fonts) {
-      if (this.fonts.has(id)) continue;
+  private async ensureFonts(index: number): Promise<void> {
+    const doc = this.documentOf(index);
+    if (!doc || !this.zip) return;
+    for (const [id, font] of doc.resources.fonts) {
+      if (doc.fonts.has(id)) continue;
       const data = font.file ? this.zip.read(font.file) : null;
-      const ok = await this.fonts.register(id, data ?? null, font.family || font.name);
-      if (!ok) this.bus.trigger('fontFallback', pageNum, font.name || font.family);
+      const ok = await doc.fonts.register(id, data ?? null, font.family || font.name);
+      if (!ok) this.bus.trigger('fontFallback', index + 1, font.name || font.family);
     }
   }
 
@@ -359,36 +430,42 @@ export class Ofdh5 {
     return Math.min(raw, this.opts.maxDpr);
   }
 
-  private async getPage(index: number): Promise<Page> {
+  private parsePageAt(index: number): Page {
     const cached = this.pageCache.get(index);
     if (cached) return cached;
-    if (!this.zip || !this.meta) throw new OfdError('E_NO_ENTRY', '包未加载');
+    if (!this.zip) throw new OfdError('E_NO_ENTRY', '包未加载');
 
-    const loc = this.meta.pages[index].loc;
-    const parsed = parsePage(this.zip.readText(loc), index, this.resources, {
-      width: this.meta.width,
-      height: this.meta.height,
-    }, loc);
+    const flat = this.flatPages[index];
+    const doc = this.documentOf(index);
+    if (!flat || !doc) throw new OfdError('E_NO_ENTRY', `第 ${index + 1} 页不存在`);
 
-    const pageId = this.meta.pages[index].id;
-    const stamps = this.annotations?.get(pageId);
+    const parsed = parsePage(
+      this.zip.readText(flat.loc),
+      index,
+      doc.resources,
+      this.fallbackSize(index),
+      flat.loc,
+    );
+
+    const stamps = doc.annotations?.get(flat.id);
     if (stamps && stamps.length > 0) {
       // 印章叠加在正文之后，保证绘制在页面对象之上
-      parsed.items.push(...stampItems(stamps, this.resources, this.signatureSeals?.get(pageId) ?? []));
+      parsed.items.push(...stampItems(stamps, doc.resources, doc.seals?.get(flat.id) ?? []));
     }
 
     this.pageCache.set(index, parsed);
     return parsed;
   }
 
-  private async prefetchImages(page: Page): Promise<void> {
-    if (!this.images) return;
+  private async prefetchImages(index: number, page: Page): Promise<void> {
+    const doc = this.documentOf(index);
+    if (!doc) return;
     const jobs: Array<Promise<unknown>> = [];
     for (const item of page.items) {
       if (item.kind !== 'image') continue;
-      const resource = this.resources.images.get(item.resId);
+      const resource = doc.resources.images.get(item.resId);
       if (!resource) continue;
-      jobs.push(this.images.load(resource.id, resource.file, resource.format));
+      jobs.push(doc.images.load(resource.id, resource.file, resource.format));
     }
     await Promise.all(jobs);
   }
@@ -401,11 +478,14 @@ export class Ofdh5 {
     const placeholder = this.placeholders[index];
 
     try {
-      const page = await this.getPage(index);
-      await this.ensureFonts(index + 1);
+      const doc = this.documentOf(index);
+      if (!doc) throw new OfdError('E_NO_ENTRY', `第 ${index + 1} 页不存在`);
+      const fontFamily = (fontRef: string) => doc.fonts.family(fontRef, doc.resources.fonts.get(fontRef)?.family);
+      const page = this.parsePageAt(index);
+      await this.ensureFonts(index);
       const width = this.contentWidth() * this.opts.scale;
       const viewport = createViewport(page, width, 1, this.dpr());
-      await this.prefetchImages(page);
+      await this.prefetchImages(index, page);
 
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(viewport.cssWidth * viewport.dpr);
@@ -421,9 +501,9 @@ export class Ofdh5 {
 
       paintPage(ctx, page, viewport, {
         background: this.opts.backgroundColor,
-        fontFamily: (fontRef) => this.fonts.family(fontRef, this.resources.fonts.get(fontRef)?.family),
+        fontFamily,
         getImage: (item) => {
-          const decoded = this.images?.get(item.resId);
+          const decoded = doc.images.get(item.resId);
           if (!decoded || isRasterImage(decoded)) return null;
           return decoded as CanvasImageSource;
         },
@@ -434,7 +514,9 @@ export class Ofdh5 {
 
       placeholder.innerHTML = '';
       placeholder.appendChild(canvas);
+      if (this.opts.textLayer) placeholder.appendChild(buildTextLayer(page, viewport, fontFamily));
       this.rendered.add(index);
+      this.applySearchHits(index, viewport);
       this.bus.trigger('render', index + 1, performance.now() - pageStarted, performance.now() - this.startedAt);
     } catch (error) {
       const err = toOfdError(error, 'E_RENDER');
@@ -509,7 +591,7 @@ export class Ofdh5 {
   getPageSize(index: number): { width: number; height: number } {
     const page = this.pageCache.get(index - 1);
     if (page) return { width: page.width, height: page.height };
-    return { width: this.meta?.width ?? 210, height: this.meta?.height ?? 297 };
+    return this.fallbackSize(index - 1);
   }
 
   getCacheStats(): { rendered: number; cachedPages: number } {
@@ -527,6 +609,96 @@ export class Ofdh5 {
       skippedObjects: this.skippedObjects,
       lastError: this.lastError,
     };
+  }
+
+  /** 全文搜索：解析所有页并返回命中，同时跳到第一个命中并高亮 */
+  searchText(keyword: string, options: SearchOptions = {}): SearchMatch[] {
+    this.clearSearchHits();
+    const matches = searchDocument(this.allPages(), keyword, options);
+    this.searchState = { keyword, matches, current: matches.length > 0 ? 0 : -1 };
+    if (matches.length > 0) {
+      this.goToPage(matches[0].pageNum);
+      this.refreshSearchHits();
+    }
+    this.bus.trigger('search', keyword, matches);
+    return matches;
+  }
+
+  findNext(): SearchMatch | null {
+    return this.stepSearch(1);
+  }
+
+  findPrevious(): SearchMatch | null {
+    return this.stepSearch(-1);
+  }
+
+  /** 清除搜索状态与命中高亮 */
+  clearSearch(): void {
+    this.searchState = null;
+    this.clearSearchHits();
+  }
+
+  getSearchState(): { keyword: string; matches: SearchMatch[]; current: number } {
+    const state = this.searchState;
+    return { keyword: state?.keyword ?? '', matches: state?.matches ?? [], current: state?.current ?? -1 };
+  }
+
+  private stepSearch(delta: number): SearchMatch | null {
+    const state = this.searchState;
+    if (!state || state.matches.length === 0) return null;
+    const total = state.matches.length;
+    state.current = ((state.current < 0 ? 0 : state.current) + delta + total) % total;
+    const match = state.matches[state.current];
+    this.goToPage(match.pageNum);
+    this.refreshSearchHits();
+    return match;
+  }
+
+  /** 解析全部页用于搜索；单页失败按空页处理，不影响其他页 */
+  private allPages(): Page[] {
+    const pages: Page[] = [];
+    for (let i = 0; i < this.totalNum; i++) {
+      try {
+        pages.push(this.parsePageAt(i));
+      } catch (error) {
+        console.warn('[ofdh5] 搜索跳过解析失败的页:', i + 1, error);
+        pages.push({ index: i, width: 0, height: 0, items: [] });
+      }
+    }
+    return pages;
+  }
+
+  private refreshSearchHits(): void {
+    for (const index of this.rendered) this.applySearchHits(index);
+  }
+
+  /** 在指定页重画命中框；vp 由 renderPage 传入，避免重复计算 */
+  private applySearchHits(index: number, vp?: Viewport): void {
+    const placeholder = this.placeholders[index];
+    const state = this.searchState;
+    if (!placeholder || !state) return;
+    for (const el of Array.from(placeholder.querySelectorAll('.ofdh5-search-hit'))) el.remove();
+    const page = this.pageCache.get(index);
+    if (!page) return;
+    const viewport = vp ?? createViewport(page, this.contentWidth() * this.opts.scale, 1, this.dpr());
+    const k = viewport.pxPerMm;
+    for (const match of state.matches) {
+      if (match.pageNum !== index + 1) continue;
+      const hit = document.createElement('div');
+      hit.className = 'ofdh5-search-hit';
+      if (match.index === state.current) hit.classList.add('is-current');
+      hit.style.left = `${match.rect.x * k}px`;
+      hit.style.top = `${match.rect.y * k}px`;
+      hit.style.width = `${Math.max(2, match.rect.width * k)}px`;
+      hit.style.height = `${Math.max(2, match.rect.height * k)}px`;
+      placeholder.appendChild(hit);
+    }
+  }
+
+  private clearSearchHits(): void {
+    for (const placeholder of this.placeholders) {
+      for (const el of Array.from(placeholder.querySelectorAll('.ofdh5-search-hit'))) el.remove();
+    }
   }
 
   goToPage(pageNum: number): void {
@@ -628,7 +800,10 @@ export class Ofdh5 {
     this.zoom?.destroy();
     this.watcher?.destroy();
     if (this.resizeHandler) window.removeEventListener('resize', this.resizeHandler);
-    this.images?.clear();
+    for (const doc of this.docs) { doc.images.clear(); }
+    this.docs = [];
+    this.flatPages = [];
+    this.searchState = null;
     this.chrome?.destroy();
     this.pageCache.clear();
     this.rendered.clear();

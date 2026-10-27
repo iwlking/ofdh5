@@ -181,3 +181,26 @@ write('publicres.ofd', {
 });
 
 console.log('fixtures written to', outDir);
+
+// 7. 多 DocBody 文档包：两个 DocRoot，第一个 2 页、第二个 1 页（页码 ID 故意重复，验证按文档隔离）
+function multiDocXml(roots) {
+  const bodies = roots
+    .map(
+      (root, i) => `  <ofd:DocBody>
+    <ofd:DocInfo><ofd:DocID>doc-${i}</ofd:DocID><ofd:Creator>ofdh5</ofd:Creator></ofd:DocInfo>
+    <ofd:DocRoot>${root}</ofd:DocRoot>
+  </ofd:DocBody>`,
+    )
+    .join('\n');
+  return `${OFD_XML_HEAD}\n${bodies}\n</ofd:OFD>`;
+}
+
+{
+  const files = { 'OFD.xml': multiDocXml(['Doc_0/Document.xml', 'Doc_1/Document.xml']) };
+  files['Doc_0/Document.xml'] = documentXml(2);
+  files['Doc_0/Pages/Page_0/Content.xml'] = textPage('第一份文档 第一页');
+  files['Doc_0/Pages/Page_1/Content.xml'] = textPage('第一份文档 第二页');
+  files['Doc_1/Document.xml'] = documentXml(1);
+  files['Doc_1/Pages/Page_0/Content.xml'] = textPage('第二份文档 唯一页');
+  write('multi-doc.ofd', files);
+}
